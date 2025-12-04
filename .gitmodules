@@ -1,0 +1,3 @@
+[submodule "ext/SKPokerEval"]
+	path = ext/SKPokerEval
+	url = https://github.com/m-anthony/SKPokerEval.git
