@@ -1,4 +1,4 @@
-package com.snaky.poker
+package com.snaky.poker.cev
 
 import kotlin.math.max
 import kotlin.math.min
@@ -188,6 +188,18 @@ class Hand(
             }
         }
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as Hand
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
 
     private data class Player(
         val name: String,

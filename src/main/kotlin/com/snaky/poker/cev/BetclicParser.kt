@@ -1,4 +1,4 @@
-package com.snaky.poker
+package com.snaky.poker.cev
 
 import io.github.kennethshackleton.skpokereval.evaluator.FiveCardsEvaluator
 import java.io.BufferedReader
@@ -14,7 +14,7 @@ class BetclicParser {
 
     fun parseFile(s: InputStream) {
         s.bufferedReader().lineSequence().forEach { state = state.parseLine(it, this) }
-        hand.handFinished()
+        if(state != ParserState.SKIPPED) hand.handFinished()
         state = ParserState.INIT
     }
 
@@ -122,7 +122,9 @@ class BetclicParser {
                 if (l == "*** PLAYERS ***") return FILL_SEATS
                 if (l.startsWith("Hand ID: ")) {
                     parser.hand = Hand(l.substringAfterLast(' '), parser.spin)
-                    parser.spin.add(parser.hand)
+                    if(!parser.spin.add(parser.hand)){
+                        return SKIPPED //duplicated hand
+                    }
                 } else if(l.startsWith("Blinds")) {
                     parser.hand.blind = l.substringAfter('/').toInt()
                 }

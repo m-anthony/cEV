@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.snaky.poker"
-version = "1.0-SNAPSHOT"
+version = "0.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -18,7 +18,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.snaky.poker.MainKt")
+    mainClass.set("com.snaky.poker.cev.MainKt")
 }
 
 val cacheDir = layout.buildDirectory.dir("precalculated_assets")
@@ -50,6 +50,22 @@ tasks.register<JavaExec>("calculateEquityCache") {
 tasks.getByName("processResources").dependsOn("calculateEquityCache")
 tasks.named("run") {
     dependsOn("calculateEquityCache")
+}
+
+tasks.named<Zip>("distZip") {
+    from(projectDir) {
+        include("cev.config.txt.example")
+        rename { it.removeSuffix(".example") }
+        into("${application.applicationName}-${project.version}/bin")
+    }
+}
+
+tasks.named<Tar>("distTar") {
+    from(projectDir) {
+        include("cev.config.txt.example")
+        rename { it.removeSuffix(".example") }
+        into("${application.applicationName}-${project.version}/bin")
+    }
 }
 
 tasks.test {

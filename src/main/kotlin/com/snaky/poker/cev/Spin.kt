@@ -1,4 +1,4 @@
-package com.snaky.poker
+package com.snaky.poker.cev
 
 class Spin(
     val id: String
@@ -9,7 +9,7 @@ class Spin(
     var startMillis = Long.MAX_VALUE
     var cev = 0.0
     var wins = 0.0
-    val hands = mutableListOf<Hand>()
+    val hands = mutableSetOf<Hand>()
 
     override fun equals(other: Any?): Boolean {
         if (this == other) return true
@@ -21,8 +21,8 @@ class Spin(
         return id.hashCode()
     }
 
-    fun add(hand: Hand) {
-        hands.add(hand)
+    fun add(hand: Hand): Boolean {
+        return hands.add(hand)
     }
 
     fun aggregateHands() {

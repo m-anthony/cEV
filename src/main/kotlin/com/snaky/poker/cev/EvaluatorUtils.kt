@@ -1,4 +1,4 @@
-package com.snaky.poker
+package com.snaky.poker.cev
 
 import io.github.kennethshackleton.skpokereval.evaluator.SevenCardsEvaluator
 import java.util.concurrent.ThreadLocalRandom
@@ -32,7 +32,7 @@ internal enum class Suit(val ch: Char) {
     DIAMOND('d');
 
     companion object {
-        private val MAP = Suit.entries.associateBy(Suit::ch)
+        private val MAP = entries.associateBy(Suit::ch)
         fun valueOf(ch: Char): Suit = MAP[ch] ?: throw IllegalArgumentException()
     }
 }
@@ -75,12 +75,8 @@ fun equity(heroCards: Long, contenders: List<Long>, deadCards: Long): Double {
     }
 }
 
-var equityPreflopCount = 0
-var equityPreflopCached = 0
 fun equityPreflop(heroCards: Long, contenders: List<Long>, deadCards: Long): Double {
-    equityPreflopCount++
     if(contenders.size == 1 && deadCards.countOneBits() == 4){
-        equityPreflopCached++
         val cached = equityPreflopCached(heroCards, contenders[0])
         return cached
     } else {
@@ -153,11 +149,6 @@ fun equityFlop(heroCards: Long, contenders: List<Long>, deadCards: Long): Double
         }
     }
     return wins / boardCount
-}
-
-fun dumpEquityStats(){
-    println("All in preflop requested : $equityPreflopCount")
-    println("All in preflop cached : $equityPreflopCached")
 }
 
 fun equityTurn(heroCards: Long, contenders: List<Long>, deadCards: Long): Double {
