@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.snaky.poker"
-version = "0.1"
+version = "0.2-SNAPSHOT"
 
 repositories {
     mavenCentral()
