@@ -1,0 +1,3 @@
+# the base directory to look for hand histories
+# on windows, change \ with /, for example c:/poker/my_hand_histories
+hh.path=

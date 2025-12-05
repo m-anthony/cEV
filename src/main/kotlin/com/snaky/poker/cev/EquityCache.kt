@@ -1,7 +1,8 @@
-package com.snaky.poker
+package com.snaky.poker.cev
 
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -21,7 +22,7 @@ fun getHandClassIndex(hand: Long): Int {
     val rankHigh = maxOf(r1, r2)
     val rankLow = minOf(r1, r2)
     handClass += (rankHigh * (rankHigh - 1)) / 2 + rankLow
-    if(c1 / Rank.entries.size == c2 / Rank.entries.size) handClass += 78 //suited
+    if (c1 / Rank.entries.size == c2 / Rank.entries.size) handClass += 78 //suited
     return handClass
 }
 
@@ -49,7 +50,7 @@ private fun calculateCanonicalSuitIndex(hA: Long, hB: Long): SuitIndexResult {
 
     var cardsTmp = cards
     var ranks = 0
-    while(cardsTmp != 0L) {
+    while (cardsTmp != 0L) {
         val card = cardsTmp.countTrailingZeroBits()
         cardsTmp = cardsTmp and (1L shl card).inv()
         ranks = ranks or (1 shl (card % MAX_RANK))
@@ -71,7 +72,7 @@ private fun calculateCanonicalSuitIndex(hA: Long, hB: Long): SuitIndexResult {
                 realToCanonical[suit] = canonicalSuit
             }
 
-            if(hA and (1L shl (rank + MAX_RANK * suit)) != 0L){
+            if (hA and (1L shl (rank + MAX_RANK * suit)) != 0L) {
                 hASuit = hASuit * MAX_SUITS + canonicalSuit
             } else {
                 hBSuit = hBSuit * MAX_SUITS + canonicalSuit
@@ -94,7 +95,10 @@ fun generateCanonicalIndexesToHand(): MutableMap<Int, Pair<Long, Long>> {
                     if (l == i || l == j) continue
                     val hB = (1L shl k) or (1L shl l)
                     val canonicalIndex = computeIndex(hA, hB)
-                    if(canonicalIndex >= 0) canonicalIndexesToHands.putIfAbsent(canonicalIndex, Pair(hA, hB))
+                    if (canonicalIndex == 367181) {
+                        println("${toString(hA)} vs ${toString(hB)}")
+                    }
+                    if (canonicalIndex >= 0) canonicalIndexesToHands.putIfAbsent(canonicalIndex, Pair(hA, hB))
                 }
             }
         }
@@ -105,17 +109,18 @@ fun generateCanonicalIndexesToHand(): MutableMap<Int, Pair<Long, Long>> {
 private fun computeIndex(hA: Long, hB: Long): Int {
     val indexA = getHandClassIndex(hA)
     val indexB = getHandClassIndex(hB)
-    val colorIndex = calculateCanonicalSuitIndex(hA , hB)
+    val colorIndex = calculateCanonicalSuitIndex(hA, hB)
     val inverted = (indexB > indexA) || (indexA == indexB && colorIndex.inverted)
-    val handClassIndex = if(inverted) getHandPairClassIndex(indexB, indexA) else getHandPairClassIndex(indexA, indexB)
+    val handClassIndex = if (inverted) getHandPairClassIndex(indexB, indexA) else getHandPairClassIndex(indexA, indexB)
     val canonicalIndex = colorIndex.index + 256 * handClassIndex
-    return if(inverted) -canonicalIndex-1 else canonicalIndex
+    return if (inverted) -canonicalIndex - 1 else canonicalIndex
 }
 
 fun equityPreflopCached(heroHand: Long, vilainHand: Long): Double {
     val index = computeIndex(heroHand, vilainHand)
-    val equity = getPreflopEquityCache()[if(index < 0) -(index + 1) else index]?:throw IllegalStateException("index $index not in equity cache")
-    return if(index >= 0) equity else 1 - equity
+    val equity = getPreflopEquityCache()[if (index < 0) -(index + 1) else index]
+        ?: throw IllegalStateException("index $index not in equity cache")
+    return if (index >= 0) equity else 1 - equity
 }
 
 private fun getHandPairClassIndex(indexA: Int, indexB: Int): Int = (indexA * (indexA + 1)) / 2 + indexB
@@ -126,14 +131,19 @@ fun main(args: Array<String>) {
     buildEquityCache(File(args[0], FILENAME))
 }
 
-private fun buildEquityCache(file: File){
-    if(file.exists()){
-        FileInputStream(file).use { if(!readFromCache(it).isEmpty()) return}
+private fun buildEquityCache(file: File) {
+    if (file.exists()) {
+        FileInputStream(file).use { if (!readFromCache(it).isEmpty()) return }
     }
     val indexesToHand = generateCanonicalIndexesToHand()
     println("Precomputing equities for ${indexesToHand.size} canonical pair of hands")
     val cache = indexesToHand.entries.parallelStream()
-        .map { Pair(it.key, computeEquityPreflop(it.value.first, listOf(it.value.second), it.value.first or it.value.second)) }
+        .map {
+            Pair(
+                it.key,
+                computeEquityPreflop(it.value.first, listOf(it.value.second), it.value.first or it.value.second)
+            )
+        }
         .collect(Collectors.toConcurrentMap({ it.first }, { it.second }))
     println("Saving preflop equities in $file")
     FileChannel.open(
@@ -160,31 +170,48 @@ private fun buildEquityCache(file: File){
 }
 
 private const val RECORD_SIZE = Int.SIZE_BYTES + Double.SIZE_BYTES
-private lateinit var EQUITY_CACHE : Map<Int, Double>
+private lateinit var EQUITY_CACHE: Map<Int, Double>
 fun getPreflopEquityCache(): Map<Int, Double> {
-    if(!::EQUITY_CACHE.isInitialized) {
+    if (!::EQUITY_CACHE.isInitialized) {
         val stream = object {}::class.java.classLoader.getResourceAsStream(FILENAME)
         EQUITY_CACHE = readFromCache(stream)
-        if(EQUITY_CACHE.isEmpty()) error("Cannot find preflop equity cache, build is corrupted")
+        if (EQUITY_CACHE.isEmpty()) error("Cannot find preflop equity cache, build is corrupted")
     }
     return EQUITY_CACHE
 }
 
-private fun readFromCache(stream: InputStream?): Map<Int,Double>{
-    if(stream == null) return emptyMap()
+
+private fun InputStream.readFully(byteArray: ByteArray): Int {
+    var totalRead = 0
+    while (totalRead < byteArray.size) {
+        val read = this.read(byteArray, totalRead, byteArray.size - totalRead)
+        if (read == -1) return read
+        totalRead += read
+    }
+    return totalRead
+}
+
+private fun readFromCache(stream: InputStream?): Map<Int, Double> {
+    if (stream == null) throw FileNotFoundException("EquityCache file not found")
     val indexesToHand = generateCanonicalIndexesToHand()
     val cache = mutableMapOf<Int, Double>()
     val bufferArray = ByteArray(RECORD_SIZE)
     val buffer = ByteBuffer.wrap(bufferArray)
     stream.use {
-        while (it.read(bufferArray) != -1) {
+        while (it.readFully(bufferArray) != -1) {
             buffer.clear()
             val index = buffer.getInt()
-            if (indexesToHand.remove(index) == null) return emptyMap()
+            if (indexesToHand.remove(index) == null) {
+                error("EquityCache is corrupted, no canonical hand for index $index")
+            }
             cache[index] = buffer.getDouble()
         }
     }
-    return if(!indexesToHand.isEmpty()) emptyMap() else cache
+    if (indexesToHand.isEmpty()) {
+        return cache
+    } else {
+        error("${indexesToHand.size} canonical hands were not mapped")
+    }
 }
 
 
