@@ -86,24 +86,41 @@ private data class Stats(
     val count: Int,
     val wins: Float,
     val cev: Float,
-    val positionalCev : Map<Hand.Position, Float>
+    val roi : Float,
+    val itm : Float,
+    val positionalCev : Map<Hand.Position, Float>,
+    val effRakePct : Float
 ) {
     companion object {
         fun fromSpins(spins: Collection<Spin>): Stats {
             // use double to do computation then cnvert to float for better user readability
             var wins = 0.0
             var cev = 0.0
+            var itm = 0
+            var buyIns = 0.0
+            var prizePool = 0.0
             val positionalCev: MutableMap<Hand.Position, Double> = EnumMap(Hand.Position::class.java)
             Hand.Position.entries.forEach { positionalCev[it] = 0.0 }
             for (spin in spins) {
                 wins += ((spin.wins/spin.buyIn).roundToInt() - 1) * spin.buyIn
+                if(spin.wins > 0) itm++
+                buyIns += spin.buyIn
+                prizePool += spin.buyIn * spin.multiplier
                 cev += spin.cev
                 spin.hands.forEach { positionalCev.computeIfPresent(it.position) { _, v -> v + it.cev } }
             }
 
             val floatCevs: MutableMap<Hand.Position, Float> = EnumMap(Hand.Position::class.java)
             positionalCev.forEach { (p, ev) -> floatCevs[p] = (ev / spins.size).toFloat() }
-            return Stats(spins.size, (100 * wins).toInt() / 100f, (cev / spins.size).toFloat(), floatCevs)
+            return Stats(
+                count = spins.size,
+                wins = (100 * wins).toInt() / 100f,
+                roi = (wins / buyIns * 100).toFloat(),
+                itm = itm * 100f / spins.size,
+                cev = (cev / spins.size).toFloat(),
+                positionalCev = floatCevs,
+                effRakePct = ((1 - prizePool / 3 / buyIns) * 100).toFloat()
+            )
         }
     }
 }
