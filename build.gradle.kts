@@ -15,6 +15,7 @@ repositories {
 dependencies {
     implementation(project(":SKPokerEval:evaluator"))
     testImplementation(kotlin("test"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }
 
 application {
@@ -33,7 +34,7 @@ val calculateCacheClasspath: Configuration by configurations.creating {
 }
 tasks.register<JavaExec>("calculateEquityCache") {
     classpath = mainSourceSet.output.classesDirs + calculateCacheClasspath
-    mainClass.set("com.snaky.poker.EquityCacheKt")
+    mainClass.set("com.snaky.poker.cev.EquityCacheKt")
     args = listOf(cacheDir.get().asFile.absolutePath)
     inputs.files(sourceSets.main.get().allSource)
     outputs.file(precalculatedCacheFile)
