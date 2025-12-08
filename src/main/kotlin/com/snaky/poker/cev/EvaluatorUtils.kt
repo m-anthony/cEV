@@ -75,12 +75,11 @@ fun equity(heroCards: Long, contenders: List<Long>, deadCards: Long): Double {
     }
 }
 
-fun equityPreflop(heroCards: Long, contenders: List<Long>, deadCards: Long): Double {
-    if(contenders.size == 1 && deadCards.countOneBits() == 4){
-        val cached = equityPreflopCached(heroCards, contenders[0])
-        return cached
+private fun equityPreflop(heroCards: Long, contenders: List<Long>, deadCards: Long): Double {
+    return if(contenders.size == 1 && deadCards.countOneBits() == 4) {
+        equityPreflopCached(heroCards, contenders[0])
     } else {
-        return computeEquityPreflopMc(heroCards, contenders, deadCards)
+        computeEquityPreflopMc(heroCards, contenders, deadCards)
     }
 
 }

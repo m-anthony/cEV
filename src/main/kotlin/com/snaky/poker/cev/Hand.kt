@@ -1,5 +1,7 @@
 package com.snaky.poker.cev
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 
@@ -154,12 +156,13 @@ class Hand(
         player.handValue = handValue
     }
 
-    fun showdownEnd() {
+    fun CoroutineScope.showdownEnd() {
         //compute hero cEV
         cev = max(hero.remaining - hero.stack, -pots.last()).toDouble()
         if(!hero.active) return //if hero folds, nothing to claim from pots
         var lastPot = 0
 
+        val asyncComputations = mutableListOf<() -> Unit>()
         var computeEquity: Boolean
         while (!pots.isEmpty()) {
             val currentPot = pots.removeFirst()
@@ -184,9 +187,17 @@ class Hand(
                     deadCards = deadCards or p.cards
                     if(p != hero && potPlayers.contains(p)) contenders.add(p.cards)
                 }
-                cev += chips * equity(hero.cards, contenders, deadCards)
+
+                if(hero.cards.countOneBits() == 2 && deadCards.countOneBits() != 4) {
+                    //multiway preflop equity => costly
+                    asyncComputations.add { cev += chips * equity(hero.cards, contenders, deadCards) }
+                } else {
+                    cev += chips * equity(hero.cards, contenders, deadCards)
+                }
             }
         }
+
+        if (!asyncComputations.isEmpty()) launch { asyncComputations.forEach { it.invoke() } }
     }
 
     override fun equals(other: Any?): Boolean {

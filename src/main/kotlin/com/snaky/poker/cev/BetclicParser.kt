@@ -1,6 +1,9 @@
 package com.snaky.poker.cev
 
 import io.github.kennethshackleton.skpokereval.evaluator.FiveCardsEvaluator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import java.io.BufferedReader
 import java.io.InputStream
 
@@ -11,6 +14,7 @@ class BetclicParser {
     private lateinit var spin: Spin
     private lateinit var hand: Hand
     private var activeBettingRound = false
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     fun parseFile(s: InputStream) {
         s.bufferedReader().lineSequence().forEach { state = state.parseLine(it, this) }
@@ -69,7 +73,9 @@ class BetclicParser {
     }
 
     private fun showdownEnd() {
-        hand.showdownEnd()
+        with(hand){
+            scope.showdownEnd()
+        }
     }
 
     private fun handFinished() {
