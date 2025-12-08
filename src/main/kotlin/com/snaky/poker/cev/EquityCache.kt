@@ -1,5 +1,10 @@
 package com.snaky.poker.cev
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -7,7 +12,6 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
-import java.util.stream.Collectors
 
 
 fun getHandClassIndex(hand: Long): Int {
@@ -137,14 +141,7 @@ private fun buildEquityCache(file: File) {
     }
     val indexesToHand = generateCanonicalIndexesToHand()
     println("Precomputing equities for ${indexesToHand.size} canonical pair of hands")
-    val cache = indexesToHand.entries.parallelStream()
-        .map {
-            Pair(
-                it.key,
-                computeEquityPreflop(it.value.first, listOf(it.value.second), it.value.first or it.value.second)
-            )
-        }
-        .collect(Collectors.toConcurrentMap({ it.first }, { it.second }))
+    val cache = runBlocking(Dispatchers.Default) { computeEquities(indexesToHand) }
     println("Saving preflop equities in $file")
     FileChannel.open(
         file.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE,
@@ -167,6 +164,14 @@ private fun buildEquityCache(file: File) {
         channel.force(true)
     }
 
+}
+
+private suspend fun computeEquities(indexesToHand: MutableMap<Int, Pair<Long, Long>>): Map<Int, Double> = coroutineScope {
+    indexesToHand.entries.map { (index, hands) ->
+        async {
+            index to computeEquityPreflop(hands.first, listOf(hands.second), hands.first or hands.second)
+        }
+    }.awaitAll().toMap()
 }
 
 private const val RECORD_SIZE = Int.SIZE_BYTES + Double.SIZE_BYTES
