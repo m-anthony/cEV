@@ -7,7 +7,7 @@ import java.io.InputStream
 import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
-import kotlin.collections.forEach
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.time.measureTimedValue
@@ -36,11 +36,44 @@ fun main() {
     println("Processing done in ${processingTime.duration}.")
 
     val spinsByBuyIn = spins.groupBy { it.buyIn }
-    spinsByBuyIn.mapValues { (_, l) -> Stats.fromSpins(l) }.toSortedMap().forEach { println(it) }
-    println("total : ${Stats.fromSpins(spins)}")
+    val statsByBuyIn = spinsByBuyIn.mapValues { (_, l) -> Stats.fromSpins(l) }
+    displayStats(statsByBuyIn, "Buy-in", Stats.fromSpins(spins))
 
     println("press ENTER to finish ...")
     readlnOrNull()
+}
+
+private fun <K : Comparable<K>> displayStats(stats: Map<K, Stats>, @Suppress("SameParameterValue") keyName: String, globalStats: Stats) {
+    val displayed = mutableListOf<List<String>>()
+    displayed.add(listOf(keyName, "Tournaments", "Winnings", "cEV", "ITM%", "ROI%", "cEV BU", "cEV SB", "cEV BB" , "cEV HUSB", "cEV HUBB", "cEV Std Dev", "cEV CI 95% +/-", "Eff. Rake %"))
+
+    fun statsToStringList(key : String, stat : Stats) : List<String> {
+        val line = mutableListOf(key)
+        line.add(stat.count.toString())
+        line.add("%.2f".format(stat.wins))
+        line.add(stat.cev.toString())
+        line.add("%.1f".format(stat.itm))
+        line.add("%.2f".format(stat.roi))
+        line.add("%.1f".format(stat.positionalCev[Hand.Position.BU]))
+        line.add("%.1f".format(stat.positionalCev[Hand.Position.SB]))
+        line.add("%.1f".format(stat.positionalCev[Hand.Position.BB]))
+        line.add("%.1f".format(stat.positionalCev[Hand.Position.HUSB]))
+        line.add("%.1f".format(stat.positionalCev[Hand.Position.HUBB]))
+        line.add(stat.cevStdDev.toString())
+        line.add(stat.ci95.toString())
+        line.add("%.2f".format(stat.effRake))
+        return line
+    }
+    stats.toSortedMap().forEach { (k, v) -> displayed.add(statsToStringList(k.toString(), v)) }
+    displayed.add(statsToStringList("Total", globalStats))
+    val maxWidth = IntArray(displayed[0].size)
+    displayed.forEach {
+        for (i in 0 until maxWidth.size) {
+            maxWidth[i] = max(maxWidth[i], it[i].length)
+        }
+    }
+
+    displayed.forEach { line -> println((0 until maxWidth.size).joinToString(" | ") { i -> line[i].padEnd(maxWidth[i]) }) }
 }
 
 private fun processFileOrDirectory(file: File) {
@@ -85,19 +118,18 @@ private fun ZipInputStream.entriesSequence(): Sequence<ZipEntry> = sequence {
 
 private data class Stats(
     val count: Int,
-    val wins: Float,
-    val cev: Float,
-    val roi: Float,
-    val itm: Float,
-    val positionalCev: Map<Hand.Position, Float>,
-    val effRakePct: Float,
-    val cevStd: Int,
-    val ci95: Int = 2 * cevStd / sqrt(count.toDouble()).toInt()
+    val wins: Double,
+    val cev: Int,
+    val roi: Double,
+    val itm: Double,
+    val positionalCev: Map<Hand.Position, Double>,
+    val effRake: Double,
+    val cevStdDev: Int,
+    val ci95: Int = 2 * cevStdDev / sqrt(count.toDouble()).toInt()
 ) {
 
     companion object {
         fun fromSpins(spins: Collection<Spin>): Stats {
-            // use double to do computation then cnvert to float for better user readability
             var wins = 0.0
             var cev = 0.0
             var itm = 0
@@ -106,9 +138,10 @@ private data class Stats(
             var sqrCev = 0.0
             val positionalCev: MutableMap<Hand.Position, Double> = EnumMap(Hand.Position::class.java)
             Hand.Position.entries.forEach { positionalCev[it] = 0.0 }
+
             for (spin in spins) {
-                wins += ((spin.wins/spin.buyIn).roundToInt() - 1) * spin.buyIn
-                if(spin.wins > 0) itm++
+                wins += ((spin.wins / spin.buyIn).roundToInt() - 1) * spin.buyIn
+                if (spin.wins > 0) itm++
                 buyIns += spin.buyIn
                 prizePool += spin.buyIn * spin.multiplier
                 cev += spin.cev
@@ -116,18 +149,17 @@ private data class Stats(
                 spin.hands.forEach { positionalCev.computeIfPresent(it.position) { _, v -> v + it.cev } }
             }
 
-            val floatCevs: MutableMap<Hand.Position, Float> = EnumMap(Hand.Position::class.java)
-            positionalCev.forEach { (p, ev) -> floatCevs[p] = (ev / spins.size).toFloat() }
+            positionalCev.entries.forEach { it.setValue(it.value / spins.size) }
             val floatCev = (cev / spins.size).toFloat()
             return Stats(
                 count = spins.size,
-                wins = (100 * wins).toInt() / 100f,
-                roi = (wins / buyIns * 100).toFloat(),
-                itm = itm * 100f / spins.size,
-                cev = floatCev,
-                positionalCev = floatCevs,
-                effRakePct = ((1 - prizePool / 3 / buyIns) * 100).toFloat(),
-                cevStd = sqrt((sqrCev / spins.size) - (floatCev * floatCev)).toInt()
+                wins = wins,
+                roi = 100.0 * wins / buyIns,
+                itm = 100.0 * itm  / spins.size,
+                cev = (cev / spins.size).roundToInt(),
+                positionalCev = positionalCev,
+                effRake = (1 - prizePool / 3 / buyIns) * 100,
+                cevStdDev = sqrt((sqrCev / spins.size) - (floatCev * floatCev)).roundToInt()
             )
         }
     }
