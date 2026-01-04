@@ -4,6 +4,9 @@ import io.github.kennethshackleton.skpokereval.evaluator.FiveCardsEvaluator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.job
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.runBlocking
 import java.io.BufferedReader
 import java.io.InputStream
 
@@ -92,6 +95,12 @@ class BetclicParser {
         val player = l.substringBefore(" finished ")
         val wins = l.substringAfter(" wins ", "").substringBefore(" EUR")
         if (!wins.isEmpty()) hand.playerFinished(player, wins.toDouble())
+    }
+
+    fun waitForBackgroundTasks() {
+        runBlocking {
+            scope.coroutineContext.job.children.toList().joinAll()
+        }
     }
 
 

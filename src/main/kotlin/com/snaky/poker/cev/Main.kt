@@ -29,6 +29,7 @@ fun main() {
     val spins = parser.spins.values
     val processingTime = measureTimedValue {
         processFileOrDirectory(file)
+        parser.waitForBackgroundTasks()
         spins.forEach { it.aggregateHands() }
     }
 
