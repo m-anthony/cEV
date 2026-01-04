@@ -9,8 +9,11 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import java.io.BufferedReader
 import java.io.InputStream
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
-class BetclicParser {
+class BetclicParser : AutoCloseable {
     val spins = mutableMapOf<String, Spin>()
 
     private var state = ParserState.INIT
@@ -18,17 +21,26 @@ class BetclicParser {
     private lateinit var hand: Hand
     private var activeBettingRound = false
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     fun parseFile(s: InputStream) {
         s.bufferedReader().lineSequence().forEach { state = state.parseLine(it, this) }
+        //there is no delimiter for the last hand of the file, so EOF should trigger some actions
         if(state != ParserState.SKIPPED) hand.handFinished()
         state = ParserState.INIT
     }
 
-    fun BufferedReader.lineSequence(): Sequence<String> = sequence {
+    override fun close() {
+        runBlocking {
+            scope.coroutineContext.job.children.toList().joinAll()
+        }
+        spins.values.forEach { it.aggregateHands() }
+    }
+
+    private fun BufferedReader.lineSequence(): Sequence<String> = sequence {
         var line = readLine()
         while (line != null) {
-            yield(line) // 'line' est non-null ici
+            yield(line)
             line = readLine()
         }
     }
@@ -45,14 +57,14 @@ class BetclicParser {
 
     private fun parseHoleCards(l: String) {
         val player = l.substringBefore(": [")
-        val cards = toLongHand(l.substringAfterLast('['))
-        hand.holecards(player, cards)
+        val cards = CardSet.parse(l.substringAfterLast('['))
+        hand.holeCards(player, cards)
     }
 
     private fun parseAction(l: String) {
-        activeBettingRound = true
         val name = l.substringAfter("- ").substringBefore(':')
         val action = l.substringAfter(": ").substringBefore(" and is all-in")
+        var ignored = false
         if(action.startsWith("Posts")) {
             hand.post(name, action.substringAfterLast(' ').toInt())
         } else if (action.startsWith("Raises") || action.startsWith("Bets")) {
@@ -61,17 +73,20 @@ class BetclicParser {
             hand.call(name)
         } else if (action.startsWith("Folds")) {
             hand.fold(name)
-        } // else check/disconnect/reconnect -> nothing to do
+        } else if (!action.startsWith("Checks")) {
+            ignored = true // disconnect/reconnect
+        } // else check/
+        activeBettingRound = activeBettingRound or !ignored
     }
 
     private fun bettingRoundFinished(l: String) {
-        if(activeBettingRound) hand.bettingRoundFinished(lazy { toLongHand(l.substringAfter('[', "")) })
+        if(activeBettingRound) hand.bettingRoundFinished(lazy { CardSet.parse(l.substringAfter('[', "")) })
         activeBettingRound = false
     }
 
     private fun showdown(l: String) {
         val player = l.substringBefore(" shows [")
-        val handValue = FiveCardsEvaluator.getRank(toLongHand(l.substringAfterLast('['))).toInt()
+        val handValue = FiveCardsEvaluator.getRank(CardSet.parse(l.substringAfterLast('[')).cards).toInt()
         hand.showdown(player, handValue)
     }
 
@@ -95,12 +110,6 @@ class BetclicParser {
         val player = l.substringBefore(" finished ")
         val wins = l.substringAfter(" wins ", "").substringBefore(" EUR")
         if (!wins.isEmpty()) hand.playerFinished(player, wins.toDouble())
-    }
-
-    fun waitForBackgroundTasks() {
-        runBlocking {
-            scope.coroutineContext.job.children.toList().joinAll()
-        }
     }
 
 
@@ -142,6 +151,9 @@ class BetclicParser {
                     }
                 } else if(l.startsWith("Blinds")) {
                     parser.hand.blind = l.substringAfter('/').toInt()
+                } else if (l.startsWith("Date & Time:")) {
+                    val dateTime = l.substringAfter(": ").substringBefore(" (UTC)")
+                    parser.hand.timestamp = LocalDateTime.parse(dateTime, parser.timeFormatter).toEpochSecond(ZoneOffset.UTC)
                 }
                 return INIT_HAND
             }

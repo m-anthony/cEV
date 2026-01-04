@@ -14,7 +14,7 @@ class Hand(
     var cev = 0.0
     var blind = 0
 
-    val position: Position get() = hero.position
+    lateinit var position: Position
 
     private val players = mutableListOf<Player>() //sorted by stack size
     private lateinit var hero: Player
@@ -25,36 +25,33 @@ class Hand(
     private var activeCount = 0
     private var pots = mutableListOf(0)
     private var deadPot = 0
-    private var lastBoard = lazy { 0L }
+    private var lastBoard = lazy { CardSet() }
 
     enum class Position {
-        //ordered by action order to deal with oddChip
+        BU,
         SB,
         BB,
-        HUBB,
         HUSB,
-        BU
+        HUBB,
     }
 
     fun addPlayer(name: String, stack: Int, positionName: String, hero: Boolean) {
-        val position = when (positionName) {
-            "BB" -> Position.HUBB
-            "BTN SB" -> Position.HUSB
-            "BTN" -> Position.BU
-            "SB" -> Position.SB
-            else -> throw IllegalStateException("Unknown position $positionName")
-        }
 
-        val player = Player(name, stack, position)
-        var index = players.binarySearch(player, compareBy { it.position.ordinal })
-        if (index < 0) index = -(index + 1)
-        players.add(index, player)
+        val player = Player(name, stack)
+        players.add(player)
         activeCount++
 
-        if (hero) this.hero = player
-        if (players.size == 3 && this.hero.position == Position.HUBB) {
-            this.hero.position = Position.BB
+        if (hero) {
+            this.hero = player
+            position = when (positionName) {
+                "BB" -> Position.HUBB
+                "BTN SB" -> Position.HUSB
+                "BTN" -> Position.BU
+                "SB" -> Position.SB
+                else -> throw IllegalStateException("Unknown position $positionName")
+            }
         }
+        if (players.size == 3 && position == Position.HUBB) position = Position.BB
     }
 
     private fun findPlayer(name: String): Player {
@@ -96,7 +93,7 @@ class Hand(
         deadPot += player.stack - (player.remaining - player.currentBet)
     }
 
-    fun bettingRoundFinished(newBoard: Lazy<Long>) {
+    fun bettingRoundFinished(newBoard: Lazy<CardSet>) {
         var allIn = 0
         var remainingCount = activeCount
 
@@ -107,10 +104,10 @@ class Hand(
                     allIn = max(allIn, player.stack)
                     if (player.remaining < matchedBet && pots.size == 1) pots.addFirst(player.stack)
                     if (player.currentBet == 0) {
-                        //all in from previous round => no equity computation
-                        player.cards = 0
-                    } else if (player.cards > 0) {
-                        player.cards = player.cards or lastBoard.value
+                        //all in from previous round => no equity computation => clear vilain hands
+                        players.forEach { if(it != hero) it.cards = CardSet() }
+                    } else if (!player.cards.isEmpty()) {
+                        player.cards = player.cards.addCards(lastBoard.value)
                     }
                 }
                 player.remaining -= player.currentBet
@@ -120,7 +117,7 @@ class Hand(
         //reduce to matchedBet if there is no side pot after biggest all in
         if (allIn > 0 && bettor.remaining - matchedBet == bettor.stack - allIn) {
             bettor.currentBet = matchedBet
-            if(remainingCount == 1 && bettor.cards > 0) bettor.cards = bettor.cards or lastBoard.value
+            if(remainingCount == 1 && !bettor.cards.isEmpty()) bettor.cards = bettor.cards.addCards(lastBoard.value)
         }
         bettor.remaining -= bettor.currentBet
         bettor.currentBet = 0
@@ -130,7 +127,7 @@ class Hand(
         lastBoard = newBoard
     }
 
-    fun holecards(playerName: String, cards: Long) {
+    fun holeCards(playerName: String, cards: CardSet) {
         findPlayer(playerName).cards = cards
     }
 
@@ -172,23 +169,23 @@ class Hand(
             lastPot = currentPot
 
             computeEquity = potPlayers.size > 1
-                    && hero.cards.countOneBits() in 2 until 7
+                    && hero.cards.size() in 2 until 7
                     && potPlayers.contains(hero)
-                    && potPlayers.all { it.cards.countOneBits() == hero.cards.countOneBits() }
+                    && potPlayers.all { it.cards.size() == hero.cards.size() }
                     && potPlayers.any { it.stack == currentPot }
 
             if(!computeEquity) {
                 val maxHandValue = potPlayers.maxOf { it.handValue }
                 if (hero.handValue == maxHandValue) cev += chips * 1f / potPlayers.count { it.handValue == maxHandValue }
             } else {
-                var deadCards = 0L
-                val contenders = mutableListOf<Long>()
+                var deadCards = CardSet()
+                val contenders = mutableListOf<CardSet>()
                 players.forEach { p ->
-                    deadCards = deadCards or p.cards
+                    deadCards = deadCards.addCards(p.cards)
                     if(p != hero && potPlayers.contains(p)) contenders.add(p.cards)
                 }
 
-                if(hero.cards.countOneBits() == 2 && deadCards.countOneBits() != 4) {
+                if(hero.cards.size() == 2 && deadCards.size() != 4) {
                     //multiway preflop equity => costly
                     asyncComputations.add { cev += chips * equity(hero.cards, contenders, deadCards) }
                 } else {
@@ -215,9 +212,8 @@ class Hand(
     private data class Player(
         val name: String,
         val stack: Int,
-        var position: Position
     ) {
-        var cards = 0L
+        var cards = CardSet()
         var handValue = 0
         var remaining = stack
         var currentBet = 0

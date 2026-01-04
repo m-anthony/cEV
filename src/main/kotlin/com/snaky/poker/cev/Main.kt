@@ -12,30 +12,26 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.time.measureTimedValue
 
-val parser = BetclicParser()
-
 fun main() {
 
 
     val cfg = Properties()
     FileInputStream("cev.config.txt").use { cfg.load(it) }
-    val basePath = cfg.getProperty("hh.path", "*")
+    val basePath = cfg.getProperty("hh.path", "./")
     print("HH file (base path = $basePath): ")
 
-    val fileName = readlnOrNull()
+    val file = File(basePath, readlnOrNull() ?: "")
 
-    val file = File(basePath, fileName ?: "")
-
-    val spins = parser.spins.values
+    val parser = BetclicParser()
     val processingTime = measureTimedValue {
-        processFileOrDirectory(file)
-        parser.waitForBackgroundTasks()
-        spins.forEach { it.aggregateHands() }
+        processFileOrDirectory(file, parser)
+        parser.close()
     }
 
     println("----------------------------------------")
     println("Processing done in ${processingTime.duration}.")
 
+    val spins = parser.spins.values
     val spinsByBuyIn = spins.groupBy { it.buyIn }
     val statsByBuyIn = spinsByBuyIn.mapValues { (_, l) -> Stats.fromSpins(l) }
     displayStats(statsByBuyIn, "Buy-in", Stats.fromSpins(spins))
@@ -51,7 +47,7 @@ private fun <K : Comparable<K>> displayStats(stats: Map<K, Stats>, @Suppress("Sa
     fun statsToStringList(key : String, stat : Stats) : List<String> {
         val line = mutableListOf(key)
         line.add(stat.count.toString())
-        line.add("%.2f".format(stat.wins))
+        line.add("%.2f".format(stat.winnings))
         line.add(stat.cev.toString())
         line.add("%.1f".format(stat.itm))
         line.add("%.2f".format(stat.roi))
@@ -77,22 +73,22 @@ private fun <K : Comparable<K>> displayStats(stats: Map<K, Stats>, @Suppress("Sa
     displayed.forEach { line -> println((0 until maxWidth.size).joinToString(" | ") { i -> line[i].padEnd(maxWidth[i]) }) }
 }
 
-private fun processFileOrDirectory(file: File) {
+private fun processFileOrDirectory(file: File, parser: BetclicParser) {
 
     if (!file.exists()) throw FileNotFoundException("File '$file' does not exists")
     println("processing file $file")
     when {
-        file.isDirectory -> file.listFiles()?.forEach { processFileOrDirectory(it) }
-        file.isFile && file.extension.equals("zip", ignoreCase = true) -> processZipFile(file)
+        file.isDirectory -> file.listFiles()?.forEach { processFileOrDirectory(it, parser) }
+        file.isFile && file.extension.equals("zip", ignoreCase = true) -> processZipFile(file, parser)
         file.isFile -> file.inputStream().use { parser.parseFile(it) }
     }
 }
 
-private fun processZipFile(zipFile: File) {
-    zipFile.inputStream().use { processZipStream(it) }
+private fun processZipFile(zipFile: File, parser: BetclicParser) {
+    zipFile.inputStream().use { processZipStream(it, parser) }
 }
 
-private fun processZipStream(inputStream: InputStream) {
+private fun processZipStream(inputStream: InputStream, parser: BetclicParser) {
 
     ZipInputStream(inputStream).use { zipStream ->
         zipStream.entriesSequence()
@@ -100,7 +96,7 @@ private fun processZipStream(inputStream: InputStream) {
             .forEach { entry ->
                 val entryName = entry.name
                 if (entryName.endsWith(".zip", ignoreCase = true)) {
-                    processZipStream(zipStream)
+                    processZipStream(zipStream, parser)
                 } else {
                     parser.parseFile(zipStream)
                 }
@@ -119,7 +115,7 @@ private fun ZipInputStream.entriesSequence(): Sequence<ZipEntry> = sequence {
 
 private data class Stats(
     val count: Int,
-    val wins: Double,
+    val winnings: Double,
     val cev: Int,
     val roi: Double,
     val itm: Double,
@@ -154,7 +150,7 @@ private data class Stats(
             val floatCev = (cev / spins.size).toFloat()
             return Stats(
                 count = spins.size,
-                wins = wins,
+                winnings = wins,
                 roi = 100.0 * wins / buyIns,
                 itm = 100.0 * itm  / spins.size,
                 cev = (cev / spins.size).roundToInt(),

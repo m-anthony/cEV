@@ -27,6 +27,8 @@ class Spin(
 
     fun aggregateHands() {
         cev = hands.sumOf { it.cev }
+        endMillis = hands.maxOf { it.timestamp }
+        startMillis = hands.minOf { it.timestamp }
     }
 
 }
