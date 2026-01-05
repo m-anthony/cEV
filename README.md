@@ -1,6 +1,6 @@
 # cEV Calculator for Betclic
 
-Compute your cEV (Chip Expected Value) for Betclic, filtered by buy-in and/or position.
+Compute your cEV (Chip Expected Value) for Betclic spins, filtered by buy-in and/or position.
 
 ## Why this project?
 
@@ -71,5 +71,20 @@ any discrepancies should be negligible.
 
 The most common root causes for these differences include:
 - **Equity Calculation Methods**: This tool uses exact equity calculations for most scenarios but relies on Monte-Carlo approximations for 3-way pots. Other tools may use different iteration counts or different algorithms entirely.
-- **Side Pot Logic**: I have implemented the same logic as PokerTracker 4: equity-based cEV is only calculated if every active player is all-in on the same street. If action continues in a side pot, the actual chip result is used for the main pot instead.
+- **Side Pot Logic**: I have implemented the same logic as PokerTracker 4: equity-based cEV is only calculated if every active player is all-in on the same street. If action continues in a side pot, the actual chip result is used instead.
 - **Software Bugs**: While cross-referencing my results with PT4, I actually discovered a bug in their calculation engine and reported it to their support team. If you believe you have found a calculation error for a specific hand in this tool, please open an issue with the hand history attached.
+
+## Glossary: Statistics Explained
+
+* **Winnings**: Total net profit. All buy-ins have already been deducted from this amount.
+* **ITM% (In The Money)**: The proportion of tournaments where you reached a paid position. This includes 2nd and 3rd place finishes in "Jackpot" formats where the prize pool is distributed among all players.
+* **ROI% (Return on Investment)**: Your total return relative to the capital invested, `Winnings / Sum of all Buy-ins`
+* **cEV per Position**: Average All-in Adjusted EV (in chips) for that specific position.
+    * *Note*: the Heads-Up cEV calculation includes tournaments where you finished 3rd. Some other tools (such as Xeester) exclude these cases.
+* **cEV Std Dev**: The observed standard deviation of your cEV. This metric is essential for running "EV mode" simulations in **SwongSim**.
+* **cEV CI 95% +/-**: The 95% Confidence Interval.
+    * *Example*: If your observed cEV is 50 and the CI is 5, there is a 95% probability that your "true" win rate lies between 45 and 55.
+    * *Note*: This is a statistical approximation based on a **Normal Distribution**. However, cEV distribution in Spin & Go is typically "fat-tailed" (extreme results like -500 chips are more frequent than a normal law would predict).
+* **Eff. Rake % (Effective Rake)**: The actual rake you paid based on your specific multiplier distribution.
+    * This can differ significantly from the **Theoretical Rake** if you have been lucky or unlucky with jackpot hits.
+    * This is especially true in "jackpot-heavy" structures where a large portion of the prize pool is concentrated in very rare multipliers.
