@@ -1,7 +1,6 @@
 package com.snaky.poker.cev
 
 import kotlinx.coroutines.*
-import java.io.BufferedReader
 import java.io.InputStream
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -19,12 +18,17 @@ class BetclicParser : AutoCloseable {
     private var asyncTasks = mutableListOf<() -> Unit>()
 
     fun parseFile(s: InputStream) {
+        val reader = s.bufferedReader()
         try {
-            s.bufferedReader().lineSequence().forEach { state = state.parseLine(it, this) }
+            var line = reader.readLine()
+            while (line != null) {
+                state = state.parseLine(line, this)
+                line = reader.readLine()
+            }
             //there is no delimiter for the last hand of the file, so EOF should trigger some actions
             if (state != ParserState.SKIPPED) handFinished()
             state = ParserState.INIT
-        } catch (e: Exception){
+        } catch (e: Exception) {
             println("Exception in hand ${hand.id}")
             throw e
         }
@@ -41,15 +45,6 @@ class BetclicParser : AutoCloseable {
         }
         spins.values.forEach { it.aggregateHands() }
     }
-
-    private fun BufferedReader.lineSequence(): Sequence<String> = sequence {
-        var line = readLine()
-        while (line != null) {
-            yield(line)
-            line = readLine()
-        }
-    }
-
 
     private fun parseSeat(l: String) {
         val name = l.substringAfter(": ").substringBefore(" (")
