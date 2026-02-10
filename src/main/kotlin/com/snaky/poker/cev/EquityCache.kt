@@ -14,7 +14,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
 
 
-fun equityPreFlopCached(heroHand: CardSet, vilainHand: CardSet): Double {
+fun equityHeadsUpPreFlopCached(heroHand: CardSet, vilainHand: CardSet): Double {
     val index = computeIndex(heroHand, vilainHand)
     val cachedIndex = if (index >= 0) index else -(index + 1)
     val equity = getPreFlopEquityCache()[cachedIndex]
@@ -201,7 +201,7 @@ private fun buildEquityCache(file: File) {
 private suspend fun computeEquities(indexesToHand: Map<Int, Pair<CardSet, CardSet>>): Map<Int, Double> = coroutineScope {
     indexesToHand.entries.map { (index, hands) ->
         async {
-            index to computeEquityPreFlop(hands.first, listOf(hands.second), hands.first.addCards(hands.second))
+            index to computeEquityPreFlop(hands.first, hands.second, hands.first.addCards(hands.second))
         }
     }.awaitAll().toMap()
 }

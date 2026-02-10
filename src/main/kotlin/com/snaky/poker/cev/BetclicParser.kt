@@ -1,12 +1,6 @@
 package com.snaky.poker.cev
 
-import io.github.kennethshackleton.skpokereval.evaluator.FiveCardsEvaluator
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.job
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.InputStream
 import java.time.LocalDateTime
@@ -19,15 +13,26 @@ class BetclicParser : AutoCloseable {
     private var state = ParserState.INIT
     private lateinit var spin: Spin
     private lateinit var hand: Hand
-    private var activeBettingRound = false
+    private lateinit var betTracker: BetTracker
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private var asyncTasks = mutableListOf<() -> Unit>()
 
     fun parseFile(s: InputStream) {
-        s.bufferedReader().lineSequence().forEach { state = state.parseLine(it, this) }
-        //there is no delimiter for the last hand of the file, so EOF should trigger some actions
-        if(state != ParserState.SKIPPED) hand.handFinished()
-        state = ParserState.INIT
+        try {
+            s.bufferedReader().lineSequence().forEach { state = state.parseLine(it, this) }
+            //there is no delimiter for the last hand of the file, so EOF should trigger some actions
+            if (state != ParserState.SKIPPED) handFinished()
+            state = ParserState.INIT
+        } catch (e: Exception){
+            println("Exception in hand ${hand.id}")
+            throw e
+        }
+        if(asyncTasks.isNotEmpty()){
+            val tasks = asyncTasks
+            scope.launch { tasks.forEach { it.invoke() } }
+            asyncTasks = mutableListOf()
+        }
     }
 
     override fun close() {
@@ -63,41 +68,78 @@ class BetclicParser : AutoCloseable {
 
     private fun parseAction(l: String) {
         val name = l.substringAfter("- ").substringBefore(':')
-        val action = l.substringAfter(": ").substringBefore(" and is all-in")
-        var ignored = false
-        if(action.startsWith("Posts")) {
-            hand.post(name, action.substringAfterLast(' ').toInt())
-        } else if (action.startsWith("Raises") || action.startsWith("Bets")) {
-            hand.bet(name, action.substringAfterLast(' ').toInt())
-        } else if (action.startsWith("Calls")) {
-            hand.call(name)
-        } else if (action.startsWith("Folds")) {
-            hand.fold(name)
-        } else if (!action.startsWith("Checks")) {
-            ignored = true // disconnect/reconnect
-        } // else check/
-        activeBettingRound = activeBettingRound or !ignored
-    }
-
-    private fun bettingRoundFinished(l: String) {
-        if(activeBettingRound) hand.bettingRoundFinished(lazy { CardSet.parse(l.substringAfter('[', "")) })
-        activeBettingRound = false
-    }
-
-    private fun showdown(l: String) {
-        val player = l.substringBefore(" shows [")
-        val handValue = FiveCardsEvaluator.getRank(CardSet.parse(l.substringAfterLast('[')).cards).toInt()
-        hand.showdown(player, handValue)
-    }
-
-    private fun showdownEnd() {
-        with(hand){
-            scope.showdownEnd()
+        val allIn = l.endsWith(" and is all-in")
+        val actionString = l.substringAfter(": ").substringBefore(" and is all-in")
+        var type: ActionType? = null
+        var amount = 0
+        if(actionString.startsWith("Posts")) {
+            type = ActionType.Blind
+            amount = actionString.substringAfterLast(' ').toInt()
+        } else if (actionString.startsWith("Raises") || actionString.startsWith("Bets")) {
+            type = ActionType.Bet
+            amount = actionString.substringAfterLast(' ').toInt()
+        } else if (actionString.startsWith("Calls")) {
+            type = ActionType.Call
+            amount = actionString.substringAfterLast(' ').toInt()
+        } else if (actionString.startsWith("Folds")) {
+            type = ActionType.Fold
+        } else if (actionString.startsWith("Checks")) {
+            type = ActionType.Check
+        } // else disconnect/reconnect -> ignore
+        if (type != null) {
+            val round = hand.currentRound()
+            Action(hand.findPlayer(name), type, allIn, amount).also {
+                round.addAction(it)
+                betTracker.registerAction(it, round.street)
+            }
         }
     }
 
+    private fun bettingRoundFinished(l: String) {
+        val board = l.substringAfter('[', "")
+        hand.nextRound(board)
+        betTracker.nextRound()
+    }
+
     private fun handFinished() {
-        hand.handFinished()
+        for(i in 0 until hand.players.size){
+            hand.players[i].remaining -= betTracker.getBet(i)
+        }
+        val diff = hand.players.sumOf { it.stack - it.remaining }
+        if(diff != 0) hand.players[betTracker.uncalledBettor()].remaining += diff //return uncalled bet
+
+        val heroSeat = hand.hero.seatId
+        val firstAllInStreet = hand.rounds.find { it.actions.any(Action::allIn) }?.street
+        val computeEquity = with(betTracker) {
+            isActiveSeat(heroSeat) && lastActiveStreet != Street.River && lastActiveStreet == firstAllInStreet && isContested()
+        }
+        if(!computeEquity){
+            hand.cev = hand.hero.remaining - hand.hero.stack.toDouble()
+        } else {
+            hand.cev = -betTracker.getBet(heroSeat).toDouble()
+            var potCount = betTracker.pots.size
+            while (!betTracker.pots[potCount - 1].isEligible(heroSeat)) potCount--
+            while (betTracker.pots[potCount - 1].eligiblePlayerCount() == 1) {
+                hand.cev += betTracker.pots[--potCount].amount.toDouble()
+            }
+            if(potCount == 1 && betTracker.pots[0].eligiblePlayerCount() == 2) {
+                hand.cev += betTracker.pots[0].amount * equityHeadsUp(hand, betTracker)
+            } else if(firstAllInStreet == Street.Preflop) {
+                val hand = this.hand
+                val betTracker = this.betTracker
+                asyncTasks.add  {
+                    val equities = equitiesMultiWay(hand, betTracker, potCount)
+                    for(i in 0 until potCount){
+                        hand.cev += equities[i] * betTracker.pots[i].amount
+                    }
+                }
+            } else {
+                val equities = equitiesMultiWay(hand, betTracker, potCount)
+                for(i in 0 until potCount){
+                    hand.cev += equities[i] * betTracker.pots[i].amount
+                }
+            }
+        }
     }
 
     private fun winPot(l: String) {
@@ -161,6 +203,7 @@ class BetclicParser : AutoCloseable {
         FILL_SEATS {
             override fun parseLine(l: String, parser: BetclicParser): ParserState {
                 return if (l == "*** HOLE CARDS ***") {
+                    parser.betTracker = BetTracker(parser.hand.players.size)
                     FILL_CARDS
                 } else {
                     parser.parseSeat(l)
@@ -191,13 +234,8 @@ class BetclicParser : AutoCloseable {
         },
         SHOWDOWN {
             override fun parseLine(l: String, parser: BetclicParser): ParserState =
-                if (l == "*** SUMMARY ***"){
-                    parser.showdownEnd()
-                    SUMMARY
-                } else {
-                    parser.showdown(l)
-                    SHOWDOWN
-                }
+                if (l == "*** SUMMARY ***") SUMMARY else SHOWDOWN
+
         },
         SUMMARY {
             override fun parseLine(l: String, parser: BetclicParser): ParserState {
