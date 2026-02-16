@@ -8,13 +8,15 @@ The main goal of this project was to experiment with **Kotlin** while building s
 In many French poker Discord communities, beginners starting at the lowest stakes often want to track their performance
 but are reluctant to invest in a commercial tracker.
 
-Currently, the tool only supports **Betclic.fr**, but I plan to implement additional poker rooms soon (prioritizing the
+Currently, the tool only supports the following poker rooms :
+- **Betclic** (stable)
+- **Winamax** (beta, may not work for nitros). You need to import both the HH files and the tournament summary files
+- **IPoker** (beta, may not work for games where a disconnection occurred since the HH file may have some mandatory data missing)
 French market).
 
-**Why Betclic?**
-* **Personal use:** It is my primary poker room, so I have plenty of Hand History (HH) files for testing.
-* **Popularity:** It is one of the largest French rooms and is highly recommended for its attractive multiplier distribution.
-* **No HUDs:** Since HUDs are prohibited on Betclic, purchasing a full tracker is often seen as less of a priority for players compared to other sites.
+I plan to add support for Unibet as soon as they release their new HH format.
+
+If you want to have another room supported, you can either provide your own PR, or open an issue with the specification of the HH format
 
 ## Installation for End Users
 
