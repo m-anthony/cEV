@@ -12,7 +12,6 @@ class Hand(
     val players: List<Player> get() = _players
     val rounds: List<Round> get() = _rounds
     lateinit var hero: Player
-        private set
 
     private val _players = mutableListOf<Player>()
     private val _rounds = mutableListOf(Round(Street.Preflop))
@@ -25,25 +24,13 @@ class Hand(
         HUBB,
     }
 
-    fun nextRound(board : String) = currentRound().street.next()?.also {_rounds.add(Round(it, board))}
+    fun nextRound(board : CardSet) = currentRound().street.next()?.also {_rounds.add(Round(it, board))}
     fun currentRound() = rounds.last()
 
-    fun addPlayer(name: String, stack: Int, positionName: String, hero: Boolean) {
-
+    fun addPlayer(name: String, stack: Int) : Player {
         val player = Player(name, stack, players.size)
         _players.add(player)
-
-        if (hero) {
-            this.hero = player
-            position = when (positionName) {
-                "BB" -> Position.HUBB
-                "BTN SB" -> Position.HUSB
-                "BTN" -> Position.BU
-                "SB" -> Position.SB
-                else -> throw IllegalStateException("Unknown position $positionName")
-            }
-        }
-        if (players.size == 3 && position == Position.HUBB) position = Position.BB
+        return player
     }
 
     fun findPlayer(name: String): Player {
@@ -88,10 +75,11 @@ enum class Street {
 
 data class Round(
     val street: Street,
-    val board: String = "",
-    private val _actions: MutableList<Action> = mutableListOf()
+    val board: CardSet = CardSet(),
 ) {
     val actions: List<Action> get() = _actions
+    private val _actions: MutableList<Action> = mutableListOf()
+
     fun addAction(action: Action) = _actions.add(action)
 }
 
@@ -102,6 +90,6 @@ enum class ActionType {
 data class Action(
     val player: Player,
     val type: ActionType,
-    val allIn: Boolean,
+    val allIn: Boolean = false,
     val amount: Int = 0
 )

@@ -22,7 +22,7 @@ fun main() {
 
     val file = File(basePath, readlnOrNull() ?: "")
 
-    val parser = BetclicParser()
+    val parser = MetaParser()
     val processingTime = measureTimedValue {
         processFileOrDirectory(file, parser)
         parser.close()
@@ -73,7 +73,7 @@ private fun <K : Comparable<K>> displayStats(stats: Map<K, Stats>, @Suppress("Sa
     displayed.forEach { line -> println((0 until maxWidth.size).joinToString(" | ") { i -> line[i].padEnd(maxWidth[i]) }) }
 }
 
-private fun processFileOrDirectory(file: File, parser: BetclicParser) {
+private fun processFileOrDirectory(file: File, parser: MetaParser) {
 
     if (!file.exists()) throw FileNotFoundException("File '$file' does not exists")
     println("processing file $file")
@@ -84,11 +84,11 @@ private fun processFileOrDirectory(file: File, parser: BetclicParser) {
     }
 }
 
-private fun processZipFile(zipFile: File, parser: BetclicParser) {
+private fun processZipFile(zipFile: File, parser: MetaParser) {
     zipFile.inputStream().use { processZipStream(it, parser) }
 }
 
-private fun processZipStream(inputStream: InputStream, parser: BetclicParser) {
+private fun processZipStream(inputStream: InputStream, parser: MetaParser) {
 
     ZipInputStream(inputStream).use { zipStream ->
         zipStream.entriesSequence()
@@ -156,7 +156,7 @@ private data class Stats(
                 cev = (cev / spins.size).roundToInt(),
                 positionalCev = positionalCev,
                 effRake = (1 - prizePool / 3 / buyIns) * 100,
-                cevStdDev = sqrt((sqrCev / spins.size) - (floatCev * floatCev)).roundToInt()
+                cevStdDev = sqrt(max(0.0, (sqrCev / spins.size) - (floatCev * floatCev))).roundToInt()
             )
         }
     }

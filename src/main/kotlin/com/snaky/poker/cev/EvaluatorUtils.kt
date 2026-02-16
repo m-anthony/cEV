@@ -9,7 +9,7 @@ fun equityHeadsUp(hand: Hand, betTracker: BetTracker): Double {
     val heroCards = hand.hero.cards
     val villainSeat = (betTracker.pots[0].eligibleMask and (1 shl heroSeat).inv()).countTrailingZeroBits()
     val villainCards = hand.players[villainSeat].cards
-    val board = CardSet.parse(hand.rounds.first { it.street == betTracker.lastActiveStreet}.board)
+    val board = hand.rounds.first { it.street == betTracker.lastActiveStreet}.board
     val heroCardsAndBoard = heroCards.addCards(board)
     val villainCardsAndBoard = villainCards.addCards(board)
     val deadCards = heroCards.addCards(villainCardsAndBoard)
@@ -22,7 +22,7 @@ fun equityHeadsUp(hand: Hand, betTracker: BetTracker): Double {
 }
 
 fun equitiesMultiWay(hand: Hand, betTracker: BetTracker, potCount: Int = betTracker.pots.size): DoubleArray {
-    val board = CardSet.parse(hand.rounds.first { it.street == betTracker.lastActiveStreet}.board)
+    val board = hand.rounds.first { it.street == betTracker.lastActiveStreet}.board
     var deadCards = board
     val handsAndBoard =
         Array(hand.players.size) { i -> board.addCards(hand.players[i].cards.also { deadCards = deadCards.addCards(it) }) }
