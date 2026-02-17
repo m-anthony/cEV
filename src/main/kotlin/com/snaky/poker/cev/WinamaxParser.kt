@@ -99,6 +99,7 @@ class WinamaxParser : AbstractRoomParser() {
                 return if(!line.startsWith("Winamax Poker")) {
                     INIT
                 } else if(line.contains("summary")) {
+                    parser.registerSpin(line.substringAfter('(').substringBefore(')'))
                     TOURNAMENT_SUMMARY
                 } else {
                     TABLE
