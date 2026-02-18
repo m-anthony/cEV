@@ -1,4 +1,4 @@
-package com.snaky.poker.cev
+package com.snaky.poker.cev.core
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

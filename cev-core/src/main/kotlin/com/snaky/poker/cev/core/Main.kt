@@ -1,4 +1,4 @@
-package com.snaky.poker.cev
+package com.snaky.poker.cev.core
 
 import java.io.File
 import java.io.FileInputStream

@@ -1,4 +1,4 @@
-package com.snaky.poker.cev
+package com.snaky.poker.cev.core
 
 class Spin(
     val id: String

@@ -1,4 +1,4 @@
-package com.snaky.poker.cev
+package com.snaky.poker.cev.core
 
 import io.github.kennethshackleton.skpokereval.evaluator.SevenCardsEvaluator
 import java.util.concurrent.ThreadLocalRandom

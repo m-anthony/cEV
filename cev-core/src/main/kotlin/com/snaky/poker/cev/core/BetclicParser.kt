@@ -1,6 +1,6 @@
-package com.snaky.poker.cev
+package com.snaky.poker.cev.core
 
-import com.snaky.poker.cev.Hand.Position
+import com.snaky.poker.cev.core.Hand.Position
 import java.io.BufferedReader
 import java.time.LocalDateTime
 import java.time.ZoneOffset

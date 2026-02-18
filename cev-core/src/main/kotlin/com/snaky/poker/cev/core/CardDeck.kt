@@ -1,4 +1,4 @@
-package com.snaky.poker.cev
+package com.snaky.poker.cev.core
 
 @JvmInline
 @Suppress("NOTHING_TO_INLINE")

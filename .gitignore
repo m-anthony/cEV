@@ -16,4 +16,4 @@ out/
 ### Kotlin ###
 .kotlin
 
-/cev.config.txt
+/cev-core/cev.config.txt
