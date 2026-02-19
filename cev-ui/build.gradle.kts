@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.jetbrains.compose)
@@ -7,6 +9,8 @@ plugins {
 dependencies {
     implementation(project(":cev-core"))
 
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.swing)
     implementation(compose.desktop.currentOs)
     implementation(compose.runtime)
     implementation(compose.foundation)
@@ -20,12 +24,20 @@ val generateVersionProperties by tasks.registering {
     group = "generation"
     val versionFile = uiGeneratedDir.get().file("version.properties")
 
+    inputs.property("name", project.group)
     inputs.property("version", project.version)
     outputs.file(versionFile)
 
     doLast {
+        val props = Properties()
+        props.setProperty("group", project.group.toString())
+        props.setProperty("version", project.version.toString())
+
         versionFile.asFile.parentFile.mkdirs()
-        versionFile.asFile.writeText("version=${project.version}")
+        versionFile.asFile.outputStream().use {
+            props.store(it, "Generated Build Properties")
+        }
+
     }
 }
 

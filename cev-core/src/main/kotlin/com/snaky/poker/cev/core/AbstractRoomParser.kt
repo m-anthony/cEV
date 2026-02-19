@@ -3,10 +3,11 @@ package com.snaky.poker.cev.core
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStream
 
@@ -38,9 +39,12 @@ abstract class AbstractRoomParser: AutoCloseable {
     }
 
     override fun close() {
-        runBlocking {
-            scope.coroutineContext.job.children.toList().joinAll()
-        }
+        scope.cancel()
+    }
+
+    // Create a distinct function for the end of calculation
+    suspend fun waitForResults() = withContext(Dispatchers.Default) {
+        scope.coroutineContext.job.children.toList().joinAll()
         spins.values.forEach { it.aggregateHands() }
     }
 

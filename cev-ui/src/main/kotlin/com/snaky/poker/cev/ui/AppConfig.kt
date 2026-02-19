@@ -13,4 +13,15 @@ object AppConfig {
             "dev"
         }
     }
+
+    val name: String by lazy {
+        val props = Properties()
+        val inputStream = AppConfig::class.java.getResourceAsStream("/version.properties")
+        if (inputStream != null) {
+            props.load(inputStream)
+            props.getProperty("name") ?: this::class.java.simpleName.substringBeforeLast('.').substringBeforeLast('.')
+        } else {
+            "dev"
+        }
+    }
 }
