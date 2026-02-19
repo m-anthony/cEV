@@ -1,4 +1,4 @@
-package com.snaky.poker.cev
+package com.snaky.poker.cev.core
 
 import java.io.BufferedInputStream
 import java.io.InputStream
@@ -22,4 +22,5 @@ class MetaParser : AutoCloseable {
 
 
     override fun close() = parsers.forEach { it.close() }
+    suspend fun waitForResults() = parsers.forEach { it.waitForResults() }
 }
