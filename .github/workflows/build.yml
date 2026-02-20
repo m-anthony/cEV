@@ -56,8 +56,8 @@ jobs:
         uses: actions/attest-build-provenance@v1
         with:
           subject-path: |
-            cev-ui/build/compose/binaries/main/msi/*.msi
-            cev-ui/build/compose/binaries/main/dmg/*.dmg
+            ${{ runner.os == 'Windows' && 'cev-ui/build/compose/binaries/main/msi/*.msi' || '' }}
+            ${{ runner.os == 'macOS' && 'cev-ui/build/compose/binaries/main/dmg/*.dmg' || '' }}
 
       - name: Generate Checksums
         shell: bash
