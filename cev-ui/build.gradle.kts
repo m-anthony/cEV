@@ -65,13 +65,15 @@ compose.desktop {
         nativeDistributions {
             targetFormats(
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi
             )
             packageName = "Spin-cEV-calculator"
             packageVersion = project.version.toString().replace("-SNAPSHOT", ".0").replace("-", ".")
 
             windows {
                 iconFile.set(uiGeneratedDir.map { it.file("icon.ico") })
+                upgradeUuid = "47230dba-4d99-44b9-8553-85762b4b6f96"
+                menu = true
             }
 
             macOS {
