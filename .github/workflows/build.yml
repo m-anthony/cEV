@@ -10,7 +10,6 @@ jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-
     permissions:
       contents: write
     strategy:
@@ -20,6 +19,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
 
       - name: Get Java version from TOML
         id: java-version
@@ -35,6 +37,12 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Cache Preflop Equity File
+        uses: actions/cache@v4
+        with:
+          path: cev-core/build/generated/resources/preflop_equity.dat
+          key: ${{ runner.os }}-preflop-equity-v1
+
       - name: Grant execute permission for gradlew
         if: runner.os == 'macOS'
         run: chmod +x gradlew
@@ -42,7 +50,15 @@ jobs:
       - name: Build Distributions
         run: ./gradlew packageDistributionForCurrentOS
 
-      - name: Upload Binaries to Release
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-binaries
+          path: |
+            build/compose/binaries/main/msi/*.msi
+            build/compose/binaries/main/dmg/*.dmg
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
