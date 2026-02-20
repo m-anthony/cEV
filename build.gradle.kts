@@ -13,4 +13,11 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    plugins.withType<org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper> {
+        configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
+            jvmToolchain(libs.versions.java.get().toInt())
+        }
+    }
+
 }

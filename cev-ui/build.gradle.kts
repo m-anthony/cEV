@@ -1,4 +1,10 @@
 import java.util.Properties
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import javax.imageio.ImageIO
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -49,7 +55,7 @@ sourceSets.main {
 }
 
 tasks.named("processResources") {
-    dependsOn(generateVersionProperties)
+    dependsOn(generateVersionProperties, generateIco, generateMacIcon)
 }
 
 compose.desktop {
@@ -61,8 +67,106 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe
             )
-            packageName = "PokerEVCalculator"
+            packageName = "Spin-cEV-calculator"
             packageVersion = project.version.toString().replace("-SNAPSHOT", ".0").replace("-", ".")
+
+            windows {
+                iconFile.set(uiGeneratedDir.map { it.file("icon.ico") })
+            }
+
+            macOS {
+                iconFile.set(uiGeneratedDir.map { it.file("icon.icns") })
+                bundleID = "com.snaky.poker.cev"
+            }
         }
+    }
+}
+
+val generateIco by tasks.registering {
+    val inputFile = file("src/main/resources/icon.png")
+    val outputDir = file(uiGeneratedDir.get().asFile.path)
+    val outputFile = file("${outputDir.path}/icon.ico")
+
+    inputs.file(inputFile)
+    outputs.file(outputFile)
+
+    doLast {
+        if (!inputFile.exists()) return@doLast
+        outputDir.mkdirs()
+
+        val source = ImageIO.read(inputFile)
+
+        // We will create a standard 256x256 ICO
+        val scaled = BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB)
+        val g = scaled.createGraphics()
+        g.drawImage(source, 0, 0, 256, 256, null)
+        g.dispose()
+
+        FileOutputStream(outputFile).use { fos ->
+            val pngData = ByteArrayOutputStream().apply {
+                ImageIO.write(scaled, "png", this)
+            }.toByteArray()
+
+            // ICO Header (6 bytes)
+            val header = ByteBuffer.allocate(6).order(ByteOrder.LITTLE_ENDIAN)
+            header.putShort(0) // Reserved
+            header.putShort(1) // Type 1 = ICO
+            header.putShort(1) // Number of images
+            fos.write(header.array())
+
+            // Icon Directory Entry (16 bytes)
+            val entry = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN)
+            entry.put(256.toByte()) // Width
+            entry.put(256.toByte()) // Height
+            entry.put(0.toByte())   // Color palette
+            entry.put(0.toByte())   // Reserved
+            entry.putShort(1)       // Color planes
+            entry.putShort(32)      // Bits per pixel
+            entry.putInt(pngData.size) // Image size
+            entry.putInt(6 + 16)    // Offset to image data
+            fos.write(entry.array())
+
+            // Image Data
+            fos.write(pngData)
+        }
+        println("Real ICO file generated at ${outputFile.absolutePath}")
+    }
+}
+
+val generateMacIcon by tasks.registering {
+    val inputFile = file("src/main/resources/icon.png")
+    val outputDir = file(uiGeneratedDir.get().asFile.path)
+    val outputFile = file("${outputDir.path}/icon.icns")
+    inputs.file(inputFile)
+    outputs.file(outputFile)
+
+    doLast {
+        if (!inputFile.exists()) return@doLast
+        outputDir.mkdirs()
+
+        val source = ImageIO.read(inputFile)
+        val pngData = ByteArrayOutputStream().apply {
+            ImageIO.write(source, "png", this)
+        }.toByteArray()
+
+        FileOutputStream(outputFile).use { fos ->
+            // ICNS Header: 'icns' + Total File Size (Big Endian)
+            val totalSize = 8 + 8 + pngData.size
+            val header = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN)
+            header.put("icns".toByteArray())
+            header.putInt(totalSize)
+            fos.write(header.array())
+
+            // Block for 1024x1024 (Type 'ic10')
+            // This is the most modern format for Retina displays
+            val blockHeader = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN)
+            blockHeader.put("ic10".toByteArray())
+            blockHeader.putInt(8 + pngData.size)
+            fos.write(blockHeader.array())
+
+            // The image data (PNG format is allowed inside these blocks)
+            fos.write(pngData)
+        }
+        println("Verified ICNS with 'icns' signature generated at ${outputFile.absolutePath}")
     }
 }

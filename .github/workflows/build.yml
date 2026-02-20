@@ -1,0 +1,53 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Java version from TOML
+        id: java-version
+        shell: bash
+        run: |
+          VERSION=$(grep "^java =" gradle/libs.versions.toml | cut -d'"' -f2)
+          echo "JAVA_VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up JDK ${{ steps.java-version.outputs.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ steps.java-version.outputs.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        if: runner.os == 'macOS'
+        run: chmod +x gradlew
+
+      - name: Build Distributions
+        run: ./gradlew packageDistributionForCurrentOS
+
+      - name: Upload Binaries to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/compose/binaries/main/msi/*.msi
+            build/compose/binaries/main/dmg/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
