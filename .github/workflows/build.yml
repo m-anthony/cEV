@@ -55,7 +55,9 @@ jobs:
       - name: Generate Artifact Attestation
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: 'cev-ui/build/compose/binaries/main/**/*.{msi,dmg}'
+          subject-path: |
+            cev-ui/build/compose/binaries/main/msi/*.msi
+            cev-ui/build/compose/binaries/main/dmg/*.dmg
 
       - name: Generate Checksums
         shell: bash
