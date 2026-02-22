@@ -14,7 +14,8 @@ class WinamaxParser : AbstractRoomParser() {
     private lateinit var bigBlind : Player
 
     override fun validateHeader(header: String): Boolean {
-        return header.contains("Winamax")
+        return header.startsWith("Winamax Poker - Tournament \"Expresso") ||
+                header.startsWith("Winamax Poker - Tournament summary : Expresso")
     }
 
     override fun parseFile(reader: BufferedReader) {
@@ -23,7 +24,7 @@ class WinamaxParser : AbstractRoomParser() {
             state = state.parseLine(line, this)
             line = reader.readLine()
         }
-        if(state != ParserState.SKIPPED) handFinished()
+        if(state != ParserState.SKIPPED && state != ParserState.INIT) handFinished()
         state = ParserState.INIT
     }
 
@@ -57,7 +58,8 @@ class WinamaxParser : AbstractRoomParser() {
                 actionType = type
             }
         }
-        if (actionIndex == -1) return
+        // the "collected XXX from pot" line should be ignored, but the player name may contain an action verb
+        if (actionIndex == -1 || line.indexOf(" collected ", actionIndex + 1) != -1) return
         val blind = actionType == ActionType.Blind
 
         val amount = when (actionType) {

@@ -92,18 +92,23 @@ abstract class AbstractRoomParser: AutoCloseable {
                 hand.cev += betTracker.pots[--potCount].amount.toDouble()
             }
             if(potCount == 1 && betTracker.pots[0].eligiblePlayerCount() == 2) {
-                hand.cev += betTracker.pots[0].amount * equityHeadsUp(hand, betTracker)
+                hand.cev += betTracker.pots[0].amount * equityHeadsUp(hand, betTracker).also { hand.equity = it }
             } else if(firstAllInStreet == Street.Preflop) {
                 val hand = this.hand
                 val betTracker = this.betTracker
+                val initCev = hand.cev
                 registerAsyncTask {
                     val equities = equitiesMultiWay(hand, betTracker, potCount)
+                    var potSharesCev = 0.0
+                    hand.equity = equities[0]
                     for(i in 0 until potCount){
-                        hand.cev += equities[i] * betTracker.pots[i].amount
+                        potSharesCev += equities[i] * betTracker.pots[i].amount
                     }
+                    hand.cev = initCev + potSharesCev
                 }
             } else {
                 val equities = equitiesMultiWay(hand, betTracker, potCount)
+                hand.equity = equities[0]
                 for(i in 0 until potCount){
                     hand.cev += equities[i] * betTracker.pots[i].amount
                 }

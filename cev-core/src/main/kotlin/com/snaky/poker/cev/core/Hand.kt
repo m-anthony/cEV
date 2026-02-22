@@ -11,6 +11,7 @@ class Hand(
     lateinit var position: Position
     val players: List<Player> get() = _players
     val rounds: List<Round> get() = _rounds
+    var equity = Double.NaN
     lateinit var hero: Player
 
     private val _players = mutableListOf<Player>()
