@@ -33,6 +33,7 @@ fun MainView(viewModel: MainViewModel) {
         topBar = { TopAppBar(title = { Text("Spin cEV Calculator") }) }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+            UpdateBanner()
             // --- Configuration Area ---
             Card(elevation = 4.dp, modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -15,6 +15,7 @@ plugins {
 dependencies {
     implementation(project(":cev-core"))
 
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(compose.desktop.currentOs)
