@@ -3,6 +3,7 @@ package com.snaky.poker.cev.core
 class Spin(
     val id: String
 ) {
+    var startingStack = 500
     var buyIn = 0.0
     var multiplier = 0
     var endMillis = 0L

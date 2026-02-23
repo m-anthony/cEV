@@ -129,19 +129,20 @@ class WinamaxParser : AbstractRoomParser() {
             override fun parseLine(line: String, parser: WinamaxParser): ParserState {
                 parser.registerSpin(line.substringAfter('(').substringBefore(')'))
                 val first = parser.firstLine
-                if(parser.spin.buyIn == 0.0){
+                if (parser.spin.buyIn == 0.0) parser.spin.apply {
                     val net = first.substringAfter("buyIn: ").substringBefore('€')
                     val rake = first.substringAfter("+ ").substringBefore('€')
-                    parser.spin.buyIn = (100 * rake.toDouble() + 100 * net.toDouble()).roundToInt() / 100.0
+                    buyIn = (100 * rake.toDouble() + 100 * net.toDouble()).roundToInt() / 100.0
+                    startingStack = if(line.contains("nitro", ignoreCase = true)) 300 else 500
                 }
 
                 val handId = first.substringAfter('#').substringBefore(' ')
-                parser.hand = Hand(handId, parser.spin)
-                if(!parser.spin.add(parser.hand)) return SKIPPED
-
-                parser.hand.blind = first.substringAfter('/').substringBefore(')').toInt()
-                val dateTime = first.substringAfterLast("- ").substringBefore(" UTC")
-                parser.hand.timestamp = LocalDateTime.parse(dateTime, parser.timeFormatter).toEpochSecond(ZoneOffset.UTC)
+                parser.hand = Hand(handId, parser.spin).apply {
+                    if(!parser.spin.add(this)) return SKIPPED
+                    blind = first.substringAfter('/').substringBefore(')').toInt()
+                    val dateTime = first.substringAfterLast("- ").substringBefore(" UTC")
+                    timestamp = LocalDateTime.parse(dateTime, parser.timeFormatter).toEpochSecond(ZoneOffset.UTC)
+                }
 
                 return SEATS
             }

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.snaky.poker.cev.core.Hand
 import com.snaky.poker.cev.core.Hand.Position.*
 import com.snaky.poker.cev.ui.config.ConfigurationManager
 import kotlin.math.roundToInt
@@ -103,7 +104,13 @@ private fun MainContent(viewModel: MainViewModel, onOpenSettings: () -> Unit) {
         }
 
         Spacer(Modifier.height(24.dp))
-
+        if (viewModel.availableFormats.size > 1) {
+            FormatSelector(
+                availableFormats = viewModel.availableFormats,
+                selectedStack = viewModel.selectedStackFilter,
+                onSelect = { viewModel.selectedStackFilter = it },
+            )
+        }
         // --- Results Table ---
         StatsTable(viewModel.statsRows)
     }
@@ -190,6 +197,72 @@ fun SourceSummaryBar(
 }
 
 @Composable
+fun FormatSelector(
+    availableFormats: Map<Int, Int>,
+    selectedStack: Int?,
+    onSelect: (Int?) -> Unit
+) {
+
+    if (availableFormats.size > 1) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Format : ", style = MaterialTheme.typography.subtitle2)
+
+            FilterChip(
+                selected = selectedStack == null,
+                onClick = { onSelect(null) },
+                label = "All"
+            )
+
+            availableFormats.forEach { (stack, count) ->
+                val label = when(stack) {
+                    200 -> "Flash - 200 chips"
+                    300 -> "Nitro - 300 chips"
+                    500 -> "Regular - 500 chips"
+                    else -> "($stack)"
+                }
+
+                Spacer(Modifier.width(8.dp))
+                FilterChip(
+                    selected = selectedStack == stack,
+                    onClick = { onSelect(stack) },
+                    label = "$label ($count)"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String
+) {
+    val backgroundColor = if (selected) MaterialTheme.colors.primary else Color.Transparent
+    val contentColor = if (selected) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+    val borderColor = if (selected) MaterialTheme.colors.primary else Color.LightGray.copy(alpha = 0.5f)
+
+    Surface(
+        color = backgroundColor,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, borderColor),
+        modifier = Modifier
+            .padding(end = 8.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
 fun StatsTable(rows: List<SpinStats>) {
 
     val columns = listOf(
@@ -199,11 +272,11 @@ fun StatsTable(rows: List<SpinStats>) {
         "cEV" to { s -> s.formatCev() },
         "ITM" to { s: SpinStats -> AnnotatedString("%.1f %%".format(s.itm * 100)) },
         "ROI" to { s: SpinStats -> AnnotatedString("%.2f %%".format(s.roi * 100)) },
-        "cEV BU" to { s: SpinStats -> AnnotatedString("%.1f".format(s.positionalCev[BU] ?: 0.0)) },
-        "cEV SB" to { s: SpinStats -> AnnotatedString("%.1f".format(s.positionalCev[SB] ?: 0.0)) },
-        "cEV BB" to { s: SpinStats -> AnnotatedString("%.1f".format(s.positionalCev[BB] ?: 0.0)) },
-        "cEV HUSB" to { s: SpinStats -> AnnotatedString("%.1f".format(s.positionalCev[HUSB] ?: 0.0)) },
-        "cEV HUBB" to { s: SpinStats -> AnnotatedString("%.1f".format(s.positionalCev[HUBB] ?: 0.0)) },
+        "cEV BU" to { s: SpinStats -> s.formatPositionCev(BU) },
+        "cEV SB" to { s: SpinStats -> s.formatPositionCev(SB) },
+        "cEV BB" to { s: SpinStats -> s.formatPositionCev(BB) },
+        "cEV HUSB" to { s: SpinStats -> s.formatPositionCev(HUSB) },
+        "cEV HUBB" to { s: SpinStats -> s.formatPositionCev(HUBB) },
         "Eff. Rake" to { s: SpinStats -> AnnotatedString("%.2f %%".format(s.effectiveRake * 100)) }
     )
 
@@ -246,6 +319,7 @@ fun StatsTable(rows: List<SpinStats>) {
 }
 
 private fun SpinStats.formatCev(): AnnotatedString {
+    if(cev.isNaN()) return AnnotatedString("")
     val ci95 = (2 * cevStdDev / sqrt(count.toDouble())).toInt()
     val isSignificant = ci95 < maxOf(10.0, cev / 2)
     return buildAnnotatedString {
@@ -277,5 +351,11 @@ private fun SpinStats.formatCev(): AnnotatedString {
             }
         }
     }
+}
+
+private fun SpinStats.formatPositionCev(pos: Hand.Position): AnnotatedString {
+    return AnnotatedString(
+        positionalCev[pos]?.let { "%.1f".format(it) } ?: ""
+    )
 }
 
