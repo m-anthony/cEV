@@ -19,7 +19,7 @@ object AppConfig {
         val inputStream = AppConfig::class.java.getResourceAsStream("/version.properties")
         if (inputStream != null) {
             props.load(inputStream)
-            props.getProperty("name") ?: this::class.java.simpleName.substringBeforeLast('.').substringBeforeLast('.')
+            props.getProperty("name")
         } else {
             "dev"
         }

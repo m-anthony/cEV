@@ -13,9 +13,9 @@ import javax.imageio.ImageIO
 
 fun main() = application {
     val myApi = object : PokerCalculatorAPI {
-        override suspend fun calculateFromDirectory(directory: File): Map<String, Spin> {
+        override suspend fun calculateFromDirectories(directories: List<File>): Map<String, Spin> {
             val parser = MetaParser()
-            processFileOrDirectory(directory, parser)
+            directories.forEach { processFileOrDirectory(it, parser) }
             parser.waitForResults()
             parser.close()
             return parser.spins

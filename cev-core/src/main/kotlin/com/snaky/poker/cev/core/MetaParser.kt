@@ -1,5 +1,7 @@
 package com.snaky.poker.cev.core
 
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import java.io.BufferedInputStream
 import java.io.InputStream
 
@@ -11,7 +13,8 @@ class MetaParser : AutoCloseable {
 
     private val parsers = listOf(BetclicParser(), IpokerParser(), WinamaxParser())
 
-    fun parseFile(inputStream: InputStream){
+    suspend fun parseFile(inputStream: InputStream){
+        currentCoroutineContext().ensureActive()
         val bufferedStream = BufferedInputStream(inputStream).also { it.mark(2048) }
         val bytes = ByteArray(512)
         val header = String(bytes, 0, bufferedStream.read(bytes))

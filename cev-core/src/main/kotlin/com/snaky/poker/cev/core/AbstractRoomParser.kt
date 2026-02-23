@@ -1,13 +1,6 @@
 package com.snaky.poker.cev.core
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.job
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.InputStream
 
@@ -33,7 +26,12 @@ abstract class AbstractRoomParser: AutoCloseable {
         }
         if (asyncTasks.isNotEmpty()) {
             val tasks = asyncTasks
-            scope.launch { tasks.forEach { it.invoke() } }
+            scope.launch {
+                tasks.forEach {
+                    ensureActive()
+                    it.invoke()
+                }
+            }
             asyncTasks = mutableListOf()
         }
     }

@@ -21,8 +21,10 @@ fun main() {
 
     val parser = MetaParser()
     val processingTime = measureTimedValue {
-        processFileOrDirectory(file, parser)
-        runBlocking { parser.waitForResults() }
+        runBlocking {
+            processFileOrDirectory(file, parser)
+            parser.waitForResults()
+        }
         parser.close()
     }
 

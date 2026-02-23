@@ -6,7 +6,7 @@ import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
-fun processFileOrDirectory(file: File, parser: MetaParser) {
+suspend fun processFileOrDirectory(file: File, parser: MetaParser) {
 
     if (!file.exists()) throw FileNotFoundException("File '$file' does not exists")
     println("processing file $file")
@@ -18,11 +18,11 @@ fun processFileOrDirectory(file: File, parser: MetaParser) {
 }
 
 
-private fun processZipFile(zipFile: File, parser: MetaParser) {
+private suspend fun processZipFile(zipFile: File, parser: MetaParser) {
     zipFile.inputStream().use { processZipStream(it, parser) }
 }
 
-private fun processZipStream(inputStream: InputStream, parser: MetaParser) {
+private suspend fun processZipStream(inputStream: InputStream, parser: MetaParser) {
 
     ZipInputStream(inputStream).use { zipStream ->
         zipStream.entriesSequence()

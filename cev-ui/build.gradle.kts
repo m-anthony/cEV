@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
@@ -25,19 +26,19 @@ dependencies {
     implementation(compose.ui)
     implementation(compose.materialIconsExtended)
 }
-
+val appName = "Spin-cEV-calculator"
 val uiGeneratedDir = layout.buildDirectory.dir("generated/ui-resources")
 val generateVersionProperties by tasks.registering {
     group = "generation"
     val versionFile = uiGeneratedDir.get().file("version.properties")
 
-    inputs.property("name", project.group)
+    inputs.property("name", appName)
     inputs.property("version", project.version)
     outputs.file(versionFile)
 
     doLast {
         val props = Properties()
-        props.setProperty("group", project.group.toString())
+        props.setProperty("name", appName)
         props.setProperty("version", project.version.toString())
 
         versionFile.asFile.parentFile.mkdirs()
@@ -68,7 +69,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi
             )
-            packageName = "Spin-cEV-calculator"
+            packageName = appName
             packageVersion = project.version.toString().replace("-SNAPSHOT", ".0").replace("-", ".")
 
             windows {
