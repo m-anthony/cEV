@@ -1,3 +1,4 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.Properties
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -66,8 +67,8 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi
+                TargetFormat.Dmg,
+                TargetFormat.Msi,
             )
             packageName = appName
             packageVersion = project.version.toString().replace("-SNAPSHOT", ".0").replace("-", ".")
@@ -75,6 +76,7 @@ compose.desktop {
             windows {
                 iconFile.set(uiGeneratedDir.map { it.file("icon.ico") })
                 upgradeUuid = "47230dba-4d99-44b9-8553-85762b4b6f96"
+                shortcut = true
                 menu = true
             }
 

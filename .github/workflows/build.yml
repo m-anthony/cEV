@@ -25,6 +25,14 @@ jobs:
           submodules: 'recursive'
           fetch-depth: 0
 
+      - name: Get App Version
+        id: app-version
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "$VERSION" == refs/* ]]; then VERSION="test-manual"; fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Get Java version from TOML
         id: java-version
         shell: bash
@@ -52,12 +60,31 @@ jobs:
       - name: Build Distributions
         run: ./gradlew packageDistributionForCurrentOS
 
+      - name: Build Portable Zip
+        run: ./gradlew :cev-ui:createDistributable
+
+      - name: Create Portable Archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.app-version.outputs.VERSION }}"
+          Compress-Archive -Path cev-ui/build/compose/binaries/main/app/* -DestinationPath "cev-ui/build/compose/binaries/main/Spin-cEV-$ver-Portable-Win.zip"
+
+      - name: Create Portable Archive (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          ver="${{ steps.app-version.outputs.VERSION }}"
+          cd cev-ui/build/compose/binaries/main/app
+          zip -r ../Spin-cEV-$ver-Portable-Mac.zip .
+
       - name: Generate Artifact Attestation
         uses: actions/attest-build-provenance@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           subject-path: |
             ${{ runner.os == 'Windows' && 'cev-ui/build/compose/binaries/main/msi/*.msi' || '' }}
             ${{ runner.os == 'macOS' && 'cev-ui/build/compose/binaries/main/dmg/*.dmg' || '' }}
+            cev-ui/build/compose/binaries/main/*.zip
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -66,15 +93,18 @@ jobs:
           path: |
             cev-ui/build/compose/binaries/main/msi/*.msi
             cev-ui/build/compose/binaries/main/dmg/*.dmg
+            cev-ui/build/compose/binaries/main/*.zip
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
           prerelease: true
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'manual-test' }}
           draft: false
           files: |
             cev-ui/build/compose/binaries/main/msi/*.msi
             cev-ui/build/compose/binaries/main/dmg/*.dmg
+            cev-ui/build/compose/binaries/main/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
