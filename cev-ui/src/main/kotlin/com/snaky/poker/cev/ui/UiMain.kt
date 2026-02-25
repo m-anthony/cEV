@@ -8,17 +8,34 @@ import androidx.compose.ui.window.rememberWindowState
 import com.snaky.poker.cev.core.MetaParser
 import com.snaky.poker.cev.core.Spin
 import com.snaky.poker.cev.core.processFileOrDirectory
+import kotlinx.coroutines.sync.Mutex
 import java.io.File
 import javax.imageio.ImageIO
 
 fun main() = application {
+
+
     val myApi = object : PokerCalculatorAPI {
+
+        private var parser : MetaParser? = null
+        private val mutex = Mutex()
+
+        override val currentSpinCount get() = parser?.currentSpinCount ?: 0
+
         override suspend fun calculateFromDirectories(directories: List<File>): Map<String, Spin> {
-            val parser = MetaParser()
-            directories.forEach { processFileOrDirectory(it, parser) }
-            parser.waitForResults()
-            parser.close()
-            return parser.spins
+            if(!mutex.tryLock()) throw IllegalStateException("Busy")
+            try {
+                with(MetaParser()){
+                    parser = this
+                    directories.forEach { processFileOrDirectory(it, this) }
+                    waitForResults()
+                    close()
+                    return spins
+                }
+            } finally {
+                parser = null
+                mutex.unlock()
+            }
         }
     }
 

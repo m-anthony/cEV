@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -40,17 +41,7 @@ fun MainView(viewModel: MainViewModel) {
             TopAppBar(
                 title = { Text("Spin-cEV Calculator") },
                 actions = {
-                    if (viewModel.isCalculating) {
-                        TextButton(
-                            onClick = {
-                                viewModel.stopCalculation()
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                        ) {
-                            Icon(Icons.Default.Stop, contentDescription = null)
-                            Text("STOP", fontWeight = FontWeight.Bold)
-                        }
-                    }
+
                 }
             )
         }
@@ -87,19 +78,57 @@ private fun MainContent(viewModel: MainViewModel, onOpenSettings: () -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         // --- Action Button ---
-        Button(
-            onClick = { viewModel.runCalculation() },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !activeSources.isEmpty() && !viewModel.isCalculating
-        ) {
-            if (viewModel.isCalculating) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
+        if (!viewModel.isCalculating) {
+            Button(
+                onClick = { viewModel.runCalculation() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !activeSources.isEmpty()
+            ) {
                 Text("Process history files")
+            }
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Processing spins: ",
+                        style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = "${viewModel.currentSpinCount}",
+                        style = MaterialTheme.typography.body2,
+                        color = MaterialTheme.colors.primary // Rappel de ta couleur violette
+                    )
+                    Surface(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .width(1.dp)
+                            .height(16.dp),
+                        color = Color.Gray.copy(alpha = 0.5f)
+                    ) {}
+
+                    TextButton(
+                        onClick = { viewModel.stopCalculation() },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f)) // Un petit bord pour le définir
+                    ) {
+                        Icon(
+                            Icons.Default.Stop,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.Red
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("STOP", color = Color.Red, style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold))
+                    }
+                }
             }
         }
 

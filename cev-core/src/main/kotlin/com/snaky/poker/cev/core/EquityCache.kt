@@ -144,7 +144,7 @@ private fun calculateCanonicalSuitIndex(hA: CardSet, hB: CardSet): SuitIndexResu
  * for each valid index in cache, get a sample pair of hands
  */
 private fun generateCanonicalIndexesToHand(): MutableMap<Int, Pair<CardSet, CardSet>> {
-    val canonicalIndexesToHands = mutableMapOf<Int, Pair<CardSet, CardSet>>()
+    val canonicalIndexesToHands = hashMapOf<Int, Pair<CardSet, CardSet>>()
     // 1. Boucler sur toutes les paires de mains (H_A vs H_B)
     for (i in 0 until CARDS - 1) {
         for (j in i + 1 until CARDS) {
@@ -210,7 +210,7 @@ private suspend fun computeEquities(indexesToHand: Map<Int, Pair<CardSet, CardSe
 private fun readFromCache(stream: InputStream?): Map<Int, Double> {
     if (stream == null) throw FileNotFoundException("EquityCache file not found")
     val indexesToHand = generateCanonicalIndexesToHand()
-    val cache = mutableMapOf<Int, Double>()
+    val cache = hashMapOf<Int, Double>()
     val bufferArray = ByteArray(RECORD_SIZE)
     val buffer = ByteBuffer.wrap(bufferArray)
     stream.use {

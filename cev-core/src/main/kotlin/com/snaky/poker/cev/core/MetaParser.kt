@@ -7,7 +7,8 @@ import java.io.InputStream
 
 class MetaParser : AutoCloseable {
 
-    val spins: Map<String, Spin> get() = parsers.fold(mutableMapOf()) {
+    val currentSpinCount: Int get() = parsers.sumOf { it.currentSpinCount }
+    val spins: Map<String, Spin> get() = parsers.fold(hashMapOf()) {
         acc, parser -> acc.also { it.putAll(parser.spins) }
     }
 

@@ -13,11 +13,14 @@ import java.util.*
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import kotlin.time.Duration.Companion.milliseconds
 
 
 class MainViewModel(private val api: PokerCalculatorAPI) {
     var isCalculating by mutableStateOf(false)
     var selectedStackFilter by mutableStateOf<Int?>(null)
+    var currentSpinCount by mutableStateOf(0)
+
     private var allSpins = mutableStateOf<Map<String, Spin>>(emptyMap())
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
@@ -50,6 +53,7 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
         isCalculating = true
 
         calculationJob = scope.launch {
+            currentSpinCount = 0
             try {
                 val results = withContext(Dispatchers.IO) {
                     api.calculateFromDirectories(paths)
@@ -58,6 +62,14 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
                 allSpins.value = results
             } finally {
                 isCalculating = false
+            }
+        }
+
+        scope.launch {
+            while(!isCalculating) delay(10.milliseconds)
+            while(isCalculating) {
+                currentSpinCount = api.currentSpinCount
+                delay(200.milliseconds)
             }
         }
     }
@@ -123,5 +135,6 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
 }
 
 interface PokerCalculatorAPI {
+    val currentSpinCount: Int
     suspend fun calculateFromDirectories(directories: List<File>): Map<String, Spin>
 }

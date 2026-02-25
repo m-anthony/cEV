@@ -3,10 +3,15 @@ package com.snaky.poker.cev.core
 import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.InputStream
+import kotlin.concurrent.Volatile
 
 abstract class AbstractRoomParser: AutoCloseable {
 
     val spins: Map<String, Spin> get() = _spins
+
+    @Volatile
+    var currentSpinCount = 0 //can be observed by UI
+        private set
 
     protected val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     protected lateinit var betTracker: BetTracker
@@ -14,12 +19,13 @@ abstract class AbstractRoomParser: AutoCloseable {
     protected lateinit var hand: Hand
 
     private var asyncTasks = mutableListOf<() -> Unit>()
-    private val _spins = mutableMapOf<String, Spin>()
+    private val _spins = hashMapOf<String, Spin>()
 
 
     fun parseFile(s: InputStream) {
         try {
             parseFile(s.bufferedReader())
+            currentSpinCount = spins.size
         } catch (e: Exception) {
             if(this::hand.isInitialized) println("Exception in hand ${hand.id}")
             println(e)

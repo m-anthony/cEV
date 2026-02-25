@@ -39,10 +39,7 @@ object ConfigurationManager {
         if (loaded.version == CURRENT_APP_VERSION || CURRENT_APP_VERSION.contains("SNAPSHOT")) {
             return loaded
         }
-
-        val updated = loaded.copy(version = CURRENT_APP_VERSION)
-        save(updated)
-        return updated
+        return loaded.copy(version = CURRENT_APP_VERSION).also { save(it) }
     }
 
     private fun createNewConfig() = UserConfiguration(version = CURRENT_APP_VERSION).also { save(it) }
