@@ -1,4 +1,4 @@
-package com.snaky.poker.cev.ui
+package com.snaky.poker.cev.ui.view
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -86,7 +86,7 @@ fun SourcesEditor(onClose: () -> Unit) {
 }
 
 @Composable
-fun SourcesList(
+private fun SourcesList(
     sources: List<HistorySource>,
     onSourcesChanged: (List<HistorySource>) -> Unit
 ) {
@@ -116,7 +116,7 @@ fun SourcesList(
 }
 
 @Composable
-fun SourceRow(
+private fun SourceRow(
     source: HistorySource,
     onUpdate: (HistorySource) -> Unit,
     onDelete: () -> Unit

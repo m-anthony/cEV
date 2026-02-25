@@ -7,6 +7,11 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.snaky.poker.cev.core.MetaParser
 import com.snaky.poker.cev.core.processFileOrDirectory
+import com.snaky.poker.cev.ui.model.MainViewModel
+import com.snaky.poker.cev.ui.model.PokerCalculatorAPI
+import com.snaky.poker.cev.ui.model.ProcessingResults
+import com.snaky.poker.cev.ui.model.ProcessingStats
+import com.snaky.poker.cev.ui.view.MainView
 import kotlinx.coroutines.sync.Mutex
 import java.io.File
 import javax.imageio.ImageIO

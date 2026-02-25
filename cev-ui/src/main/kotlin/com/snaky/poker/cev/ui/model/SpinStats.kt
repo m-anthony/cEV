@@ -1,4 +1,4 @@
-package com.snaky.poker.cev.ui
+package com.snaky.poker.cev.ui.model
 
 import com.snaky.poker.cev.core.Hand
 

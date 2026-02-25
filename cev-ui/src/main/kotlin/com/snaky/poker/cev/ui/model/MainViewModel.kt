@@ -1,4 +1,4 @@
-package com.snaky.poker.cev.ui
+package com.snaky.poker.cev.ui.model
 
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -10,6 +10,7 @@ import com.snaky.poker.cev.ui.config.ConfigurationManager
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.*
+import kotlin.collections.plus
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
