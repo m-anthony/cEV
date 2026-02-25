@@ -68,14 +68,14 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ steps.app-version.outputs.VERSION }}"
-          Compress-Archive -Path cev-ui/build/compose/binaries/main/app/* -DestinationPath "cev-ui/build/compose/binaries/main/Spin-cEV-$ver-Portable-Win.zip"
+          Compress-Archive -Path cev-ui/build/compose/binaries/main/app/* -DestinationPath "cev-ui/build/compose/binaries/main/Spin-cEV-Portable-Win-$ver.zip"
 
       - name: Create Portable Archive (macOS)
         if: runner.os == 'macOS'
         run: |
           ver="${{ steps.app-version.outputs.VERSION }}"
           cd cev-ui/build/compose/binaries/main/app
-          zip -r ../Spin-cEV-$ver-Portable-Mac.zip .
+          zip -r ../Spin-cEV-Portable-Mac-$ver.zip .
 
       - name: Generate Artifact Attestation
         uses: actions/attest-build-provenance@v1
