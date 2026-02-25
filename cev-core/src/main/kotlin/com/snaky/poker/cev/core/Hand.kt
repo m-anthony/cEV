@@ -13,6 +13,7 @@ class Hand(
     val rounds: List<Round> get() = _rounds
     var equity = Double.NaN
     lateinit var hero: Player
+    val heroDetected get() = this::hero.isInitialized
 
     private val _players = mutableListOf<Player>()
     private val _rounds = mutableListOf(Round(Street.Preflop))
