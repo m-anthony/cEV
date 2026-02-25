@@ -27,6 +27,7 @@ class Spin(
     }
 
     fun aggregateHands() {
+        if(hands.isEmpty()) return //may happen on corrupted ipoker files
         cev = hands.sumOf { it.cev }
         endMillis = hands.maxOf { it.timestamp }
         startMillis = hands.minOf { it.timestamp }

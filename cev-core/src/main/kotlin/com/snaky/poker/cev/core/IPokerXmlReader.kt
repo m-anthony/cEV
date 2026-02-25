@@ -20,15 +20,17 @@ interface IPokerXmlListener {
     // --- 2. Hand Context (Called at the start of each <game>) ---
     // At this point, you know the hand ID and the players' initial state
     fun onNewHand(handId: String)
+    fun onHandStartDate(datetime: String)
+    fun onBigBlind(blind: Int)
 
     fun onPlayerInfo(name: String, chips: Int, bet: Int, win: Int)
     // --- 3. Street / Action Flow (Called multiple times per hand) ---
     // street 0/1 = Preflop, 2 = Flop, etc.
     fun onHoleCards(playerName: String, cards: String)
+
     fun onAction(street: Int, playerName: String, type: Int, amount: Int)
 
     fun onBoardCards(streetType: String, cards: String)
-
     // --- 4. Hand Completion ---
     fun onHandFinished()
     // --- 5. Security ---
@@ -47,14 +49,17 @@ class IPokerXmlReader(private val listener: IPokerXmlListener) {
                 val event = reader.next()
                 if (event == XMLStreamConstants.START_ELEMENT) {
                     when (reader.localName) {
-                        "tablename" ->
-                            if (!(reader.elementText?.contains("Twister", ignoreCase = true) ?: false)) {
+                        "tablename" -> {
+                            val name = reader.elementText
+                            if (!(name?.contains("Twister", ignoreCase = true) ?: false)) {
                                 // Security check: must contain "Twister"
                                 listener.onAborted()
                                 return
+                            } else {
+                                listener.onTournamentStarted(name.substringAfterLast(", "))
                             }
+                        }
                         "nickname" -> listener.onHeroName(reader.elementText)
-                        "tournamentcode" -> listener.onTournamentStarted(reader.elementText)
                         "totalbuyin" -> listener.onTotalBuyIn(reader.elementText.toAmount())
                         "win" -> listener.onTotalWin(reader.elementText.toAmount())
                         "rewarddrawn" -> listener.onRewardDrawn(reader.elementText.toAmount())
@@ -77,6 +82,8 @@ class IPokerXmlReader(private val listener: IPokerXmlListener) {
             val event = reader.next()
             if (event == XMLStreamConstants.START_ELEMENT) {
                 when (reader.localName) {
+                    "startdate" -> listener.onHandStartDate(reader.elementText)
+                    "bigblind" -> listener.onBigBlind(reader.elementText.toAmount().toInt())
                     "player" -> {
                         listener.onPlayerInfo(
                             name = reader.getAttributeValue(null, "name") ?: "Unknown",

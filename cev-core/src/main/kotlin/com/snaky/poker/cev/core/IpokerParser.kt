@@ -1,6 +1,9 @@
 package com.snaky.poker.cev.core
 
 import java.io.BufferedReader
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
@@ -9,6 +12,8 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     private var prizePool = 0.0
     private var heroName: String = ""
     private var validTournament = false
+    private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private var validHand = true
 
     override fun parseFile(reader: BufferedReader) {
         xmlReader.parse(reader)
@@ -37,12 +42,20 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
 
 
     override fun onNewHand(handId: String) {
-        //TODO: handle duplicated hand
         hand = Hand(handId, spin)
-        spin.add(hand)
+        validHand = validTournament && spin.add(hand)
+    }
+
+    override fun onHandStartDate(datetime: String) {
+        hand.timestamp = LocalDateTime.parse(datetime, timeFormatter).toEpochSecond(ZoneOffset.UTC)
+    }
+
+    override fun onBigBlind(blind: Int) {
+        hand.blind = blind
     }
 
     override fun onPlayerInfo(name: String, chips: Int, bet: Int, win: Int) {
+        if(!validHand) return
         if(spin.hands.size == 1) spin.startingStack = chips
         val player = hand.addPlayer(name, chips)
         if(name == heroName){
@@ -53,16 +66,22 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     }
 
     override fun onHoleCards(playerName: String, cards: String) {
+        if(!validHand) return
         if(cards.contains('X')) return
         hand.findPlayer(playerName).cards = cards.toCardSet()
     }
 
     override fun onAction(street: Int, playerName: String, type: Int, amount: Int) {
+        if(!validHand) return
         val player = hand.findPlayer(playerName)
         when(type) {
             0 -> registerAction(Action(player, ActionType.Fold), false)
             1 -> {
-                //SB
+                if(!hand.heroDetected){
+                    spin.hands.remove(hand)
+                    validHand = false
+                    return
+                }
                 this.betTracker = BetTracker(hand.players.size)
                 registerAction(Action(player, ActionType.Blind, amount >= player.stack, amount), false)
                 if (player == hand.hero) {
@@ -88,11 +107,15 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     }
 
     override fun onBoardCards(streetType: String, cards: String) {
+        if(!validHand) return
         val board = if (hand.rounds.size == 1) cards.toCardSet() else hand.currentRound().board.addCard(cards.toCard())
         onNextRound(board)
     }
 
-    override fun onHandFinished() = handFinished()
+    override fun onHandFinished() {
+        if(validHand) handFinished()
+        validHand = false
+    }
 
     override fun onAborted() {
         validTournament = false
