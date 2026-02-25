@@ -20,6 +20,7 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
     var isCalculating by mutableStateOf(false)
     var selectedStackFilter by mutableStateOf<Int?>(null)
     var currentSpinCount by mutableStateOf(0)
+    var processingStats by mutableStateOf(ProcessingStats())
 
     private var allSpins = mutableStateOf<Map<String, Spin>>(emptyMap())
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -44,8 +45,7 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
     }
 
     fun runCalculation() {
-        allSpins.value = emptyMap()
-        selectedStackFilter = null
+        clearResults()
         val paths = ConfigurationManager.configuration.sources.filter { it.isActive }
             .map { File(it.path) }
             .filter { it.exists() }
@@ -53,13 +53,13 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
         isCalculating = true
 
         calculationJob = scope.launch {
-            currentSpinCount = 0
             try {
-                val results = withContext(Dispatchers.IO) {
+                withContext(Dispatchers.IO) {
                     api.calculateFromDirectories(paths)
+                }.also {
+                    allSpins.value = it.spins
+                    processingStats = it.processingStats
                 }
-
-                allSpins.value = results
             } finally {
                 isCalculating = false
             }
@@ -76,8 +76,15 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
 
     fun stopCalculation() {
         calculationJob?.cancel()
-        allSpins.value = emptyMap()
+        clearResults()
         isCalculating = false
+    }
+
+    fun clearResults(){
+        allSpins.value = emptyMap()
+        processingStats = ProcessingStats()
+        currentSpinCount = 0
+        selectedStackFilter = null
     }
 
     private fun transformToStats(
@@ -99,7 +106,7 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
 
         val posEntries = Position.entries
         var netGainCents = 0
-        var prizePoolCents = 0
+        var prizePoolCents = 0.0
         val count = spins.size
         var ev = 0.0
         var sqrEv = 0.0
@@ -110,7 +117,7 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
         for (spin in spins) {
             val buyIn = (100 * spin.buyIn).roundToInt()
             totalBuyInCents += buyIn
-            prizePoolCents += buyIn * spin.multiplier
+            prizePoolCents += buyIn * (spin.multiplier.toDouble().takeUnless { it == 0.0 } ?: Double.NaN)
             if (spin.wins > 0) itmCount++
             netGainCents += (100 * spin.wins).roundToInt() - buyIn
             ev += spin.cev
@@ -136,5 +143,16 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
 
 interface PokerCalculatorAPI {
     val currentSpinCount: Int
-    suspend fun calculateFromDirectories(directories: List<File>): Map<String, Spin>
+    suspend fun calculateFromDirectories(directories: List<File>): ProcessingResults
 }
+
+data class ProcessingResults (
+    val spins: Map<String, Spin>,
+    val processingStats : ProcessingStats,
+)
+
+data class ProcessingStats (
+    val validSpinCount: Int = 0,
+    val incompleteSpinCount: Int = 0,
+    val duplicateHandCount: Int = 0,
+)

@@ -12,6 +12,10 @@ abstract class AbstractRoomParser: AutoCloseable {
     @Volatile
     var currentSpinCount = 0 //can be observed by UI
         private set
+    var invalidSpins = 0
+        private set
+    var duplicateHands = 0
+        protected set
 
     protected val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     protected lateinit var betTracker: BetTracker
@@ -46,10 +50,18 @@ abstract class AbstractRoomParser: AutoCloseable {
         scope.cancel()
     }
 
-    // Create a distinct function for the end of calculation
     suspend fun waitForResults() = withContext(Dispatchers.Default) {
         scope.coroutineContext.job.children.toList().joinAll()
-        spins.values.forEach { it.aggregateHands() }
+        val iterator = _spins.values.iterator()
+        while (iterator.hasNext()){
+            iterator.next().run {
+                aggregateHands()
+                if (!valid) {
+                    iterator.remove()
+                    invalidSpins++
+                }
+            }
+        }
     }
 
 

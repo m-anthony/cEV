@@ -8,6 +8,8 @@ import java.io.InputStream
 class MetaParser : AutoCloseable {
 
     val currentSpinCount: Int get() = parsers.sumOf { it.currentSpinCount }
+    val invalidSpins: Int get() = parsers.sumOf { it.invalidSpins }
+    val duplicateHands : Int get() = parsers.sumOf { it.duplicateHands }
     val spins: Map<String, Spin> get() = parsers.fold(hashMapOf()) {
         acc, parser -> acc.also { it.putAll(parser.spins) }
     }

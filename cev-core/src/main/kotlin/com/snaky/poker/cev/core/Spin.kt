@@ -6,11 +6,17 @@ class Spin(
     var startingStack = 500
     var buyIn = 0.0
     var multiplier = 0
-    var endMillis = 0L
-    var startMillis = Long.MAX_VALUE
-    var cev = 0.0
     var wins = 0.0
     val hands = mutableSetOf<Hand>()
+
+    var endTimestamp = 0L
+        private set
+    var startTimestamp = 0L
+        private set
+    var cev = 0.0
+        private set
+    var valid = true
+        private set
 
     override fun equals(other: Any?): Boolean {
         if (this == other) return true
@@ -27,10 +33,22 @@ class Spin(
     }
 
     fun aggregateHands() {
-        if(hands.isEmpty()) return //may happen on corrupted ipoker files
-        cev = hands.sumOf { it.cev }
-        endMillis = hands.maxOf { it.timestamp }
-        startMillis = hands.minOf { it.timestamp }
+        valid = buyIn > 0
+        if(hands.isEmpty() || !valid) return //may happen on corrupted iPoker files
+        val sortedHands = hands.sortedWith(compareBy<Hand> { it.timestamp }.thenBy { it.id })
+        var heroStack = startingStack
+        valid = sortedHands[0].players.all { it.stack == startingStack }
+        for(hand in sortedHands){
+            if(!valid) return
+            valid = hand.hero.stack == heroStack
+            heroStack += hand.chips
+            cev += hand.cev
+        }
+        startTimestamp = sortedHands[0].timestamp
+        endTimestamp = sortedHands.last().timestamp
+
+        //valid if all hands are contiguous + hero wins/lose/made a deal
+        valid = heroStack == 0 || heroStack == 3 * startingStack || (wins > 0 && wins < 0.7 * multiplier * buyIn)
     }
 
 }

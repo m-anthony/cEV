@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -48,7 +49,11 @@ fun MainView(viewModel: MainViewModel) {
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
             if (isSettingsOpen) {
-                SourcesEditor(onClose = { isSettingsOpen = false })
+                val currentConfig = ConfigurationManager.configuration.copy()
+                SourcesEditor(onClose = {
+                    isSettingsOpen = false
+                    if (currentConfig != ConfigurationManager.configuration) viewModel.clearResults()
+                })
             } else {
                 MainContent(
                     viewModel = viewModel,
@@ -76,17 +81,7 @@ private fun MainContent(viewModel: MainViewModel, onOpenSettings: () -> Unit) {
         )
 
         Spacer(Modifier.height(16.dp))
-
-        // --- Action Button ---
-        if (!viewModel.isCalculating) {
-            Button(
-                onClick = { viewModel.runCalculation() },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !activeSources.isEmpty()
-            ) {
-                Text("Process history files")
-            }
-        } else {
+        if (viewModel.isCalculating) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
@@ -130,7 +125,19 @@ private fun MainContent(viewModel: MainViewModel, onOpenSettings: () -> Unit) {
                     }
                 }
             }
+        } else if(!viewModel.statsRows.isEmpty()) {
+            ProcessingFeedback(viewModel.processingStats)
+        } else {
+            Button(
+                onClick = { viewModel.runCalculation() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !activeSources.isEmpty()
+            ) {
+                Text("Process history files")
+            }
         }
+
+        // --- Action Button ---
 
         Spacer(Modifier.height(24.dp))
         if (viewModel.availableFormats.size > 1) {
@@ -290,6 +297,57 @@ fun FilterChip(
         )
     }
 }
+@Composable
+fun ProcessingFeedback(stats: ProcessingStats) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Valid Spins - Success Green
+        BadgeText(
+            count = stats.validSpinCount,
+            label = "valid spins",
+            color = Color(0xFF43A047) // green
+        )
+
+        if (stats.incompleteSpinCount> 0) {
+            Spacer(Modifier.width(16.dp))
+            BadgeText(
+                count = stats.incompleteSpinCount,
+                label = "incomplete spins",
+                color = Color(0xFFFFB300) // Amber/Orange
+            )
+        }
+
+        if (stats.duplicateHandCount > 0) {
+            Spacer(Modifier.width(16.dp))
+            BadgeText(
+                count = stats.duplicateHandCount,
+                label = "duplicate hands",
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+@Composable
+fun BadgeText(count: Int, label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, shape = CircleShape)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = "$count $label",
+            style = MaterialTheme.typography.caption,
+            color = color.copy(alpha = 0.9f),
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
 
 @Composable
 fun StatsTable(rows: List<SpinStats>) {
@@ -306,7 +364,8 @@ fun StatsTable(rows: List<SpinStats>) {
         "cEV BB" to { s: SpinStats -> s.formatPositionCev(BB) },
         "cEV HUSB" to { s: SpinStats -> s.formatPositionCev(HUSB) },
         "cEV HUBB" to { s: SpinStats -> s.formatPositionCev(HUBB) },
-        "Eff. Rake" to { s: SpinStats -> AnnotatedString("%.2f %%".format(s.effectiveRake * 100)) }
+        "Eff. Rake" to { s: SpinStats -> s.formatEffectiveRake() }
+
     )
 
     Column(Modifier.fillMaxSize()) {
@@ -350,7 +409,7 @@ fun StatsTable(rows: List<SpinStats>) {
 private fun SpinStats.formatCev(): AnnotatedString {
     if(cev.isNaN()) return AnnotatedString("")
     val ci95 = (2 * cevStdDev / sqrt(count.toDouble())).toInt()
-    val isSignificant = ci95 < maxOf(10.0, cev / 2)
+    val isSignificant = ci95 < maxOf(10.0, cev / 2) && count > 50
     return buildAnnotatedString {
         if (isSignificant) {
             append(cev.roundToInt().toString())
@@ -385,6 +444,12 @@ private fun SpinStats.formatCev(): AnnotatedString {
 private fun SpinStats.formatPositionCev(pos: Hand.Position): AnnotatedString {
     return AnnotatedString(
         positionalCev[pos]?.let { "%.1f".format(it) } ?: ""
+    )
+}
+
+private fun SpinStats.formatEffectiveRake(): AnnotatedString {
+    return AnnotatedString(
+        if(effectiveRake.isNaN()) "N/A" else "%.2f %%".format(effectiveRake * 100)
     )
 }
 

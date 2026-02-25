@@ -6,7 +6,6 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.snaky.poker.cev.core.MetaParser
-import com.snaky.poker.cev.core.Spin
 import com.snaky.poker.cev.core.processFileOrDirectory
 import kotlinx.coroutines.sync.Mutex
 import java.io.File
@@ -22,7 +21,7 @@ fun main() = application {
 
         override val currentSpinCount get() = parser?.currentSpinCount ?: 0
 
-        override suspend fun calculateFromDirectories(directories: List<File>): Map<String, Spin> {
+        override suspend fun calculateFromDirectories(directories: List<File>): ProcessingResults {
             if(!mutex.tryLock()) throw IllegalStateException("Busy")
             try {
                 with(MetaParser()){
@@ -30,7 +29,13 @@ fun main() = application {
                     directories.forEach { processFileOrDirectory(it, this) }
                     waitForResults()
                     close()
-                    return spins
+                    return ProcessingResults(
+                        spins, ProcessingStats(
+                            incompleteSpinCount = invalidSpins,
+                            duplicateHandCount = duplicateHands,
+                            validSpinCount = spins.size
+                        )
+                    )
                 }
             } finally {
                 parser = null

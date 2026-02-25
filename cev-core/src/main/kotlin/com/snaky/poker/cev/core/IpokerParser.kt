@@ -43,7 +43,7 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
 
     override fun onNewHand(handId: String) {
         hand = Hand(handId, spin)
-        validHand = validTournament && spin.add(hand)
+        validHand = validTournament && spin.add(hand).also { if(!it) duplicateHands++ }
     }
 
     override fun onHandStartDate(datetime: String) {

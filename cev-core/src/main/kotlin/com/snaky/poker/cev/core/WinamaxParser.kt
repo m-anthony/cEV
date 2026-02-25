@@ -138,7 +138,10 @@ class WinamaxParser : AbstractRoomParser() {
 
                 val handId = first.substringAfter('#').substringBefore(' ')
                 parser.hand = Hand(handId, parser.spin).apply {
-                    if(!parser.spin.add(this)) return SKIPPED
+                    if(!parser.spin.add(this)) {
+                        parser.duplicateHands++
+                        return SKIPPED
+                    }
                     blind = first.substringAfter('/').substringBefore(')').toInt()
                     val dateTime = first.substringAfterLast("- ").substringBefore(" UTC")
                     timestamp = LocalDateTime.parse(dateTime, parser.timeFormatter).toEpochSecond(ZoneOffset.UTC)

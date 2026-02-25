@@ -129,6 +129,7 @@ class BetclicParser : AbstractRoomParser() {
                 if (l.startsWith("Hand ID: ")) {
                     parser.hand = Hand(l.substringAfterLast(' '), parser.spin)
                     if(!parser.spin.add(parser.hand)){
+                        parser.duplicateHands++
                         return SKIPPED //duplicated hand
                     }
                 } else if(l.startsWith("Blinds")) {
