@@ -14,21 +14,18 @@ object ConfigurationManager {
     var configuration by mutableStateOf(load())
         private set
 
-    fun save(config: UserConfiguration = configuration) {
-        PathManager.configFile.writeText(json.encodeToString(config))
-        configuration = config
+    fun save(config: UserConfiguration) {
+        configuration = config.also { writeToDisk(it) }
     }
+
+    private fun writeToDisk(config: UserConfiguration) = PathManager.configFile.writeText(json.encodeToString(config))
 
     private fun load(): UserConfiguration {
         val configFile = PathManager.configFile
 
         return if (configFile.exists()) {
-            try {
-                val loaded = json.decodeFromString<UserConfiguration>(configFile.readText())
-                handleVersionMigration(loaded)
-            } catch (_: Exception) {
-                createNewConfig()
-            }
+            val loaded = json.decodeFromString<UserConfiguration>(configFile.readText())
+            handleVersionMigration(loaded).also { writeToDisk(it) }
         } else {
             createNewConfig()
         }
@@ -39,7 +36,7 @@ object ConfigurationManager {
         if (loaded.version == CURRENT_APP_VERSION || CURRENT_APP_VERSION.contains("SNAPSHOT")) {
             return loaded
         }
-        return loaded.copy(version = CURRENT_APP_VERSION).also { save(it) }
+        return loaded.copy(version = CURRENT_APP_VERSION)
     }
 
     private fun createNewConfig() = UserConfiguration(version = CURRENT_APP_VERSION).also { save(it) }
