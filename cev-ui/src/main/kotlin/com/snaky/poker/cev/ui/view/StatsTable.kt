@@ -168,8 +168,7 @@ private fun FilterChip(
 
 private fun SpinStats.formatCev(): AnnotatedString {
     if(cev.isNaN()) return AnnotatedString("")
-    val ci95 = (2 * cevStdDev / sqrt(count.toDouble())).toInt()
-    val isSignificant = ci95 < maxOf(10.0, cev / 2) && count > 50
+    val (ci95, isSignificant) = getConfidenceInterval()
     return buildAnnotatedString {
         if (isSignificant) {
             append(cev.roundToInt().toString())
@@ -201,10 +200,28 @@ private fun SpinStats.formatCev(): AnnotatedString {
     }
 }
 
+private fun SpinStats.getConfidenceInterval(): Pair<Int, Boolean> {
+    val ci95 = (2 * cevStdDev / sqrt(count.toDouble())).toInt()
+    val isSignificant = ci95 < maxOf(10.0, cev / 2) && count > 50
+    return Pair(ci95, isSignificant)
+}
+
 private fun SpinStats.formatPositionCev(pos: Hand.Position): AnnotatedString {
-    return AnnotatedString(
-        positionalCev[pos]?.let { "%.1f".format(it) } ?: ""
-    )
+    val (_, isSignificant) = getConfidenceInterval()
+    val cevString = positionalCev[pos]?.let { "%.1f".format(it) } ?: ""
+    return buildAnnotatedString {
+        if(!isSignificant){
+            withStyle(style = SpanStyle(
+                color = Color.Gray.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Normal
+            )) {
+                append(cevString)
+            }
+        } else {
+            append(cevString)
+        }
+
+    }
 }
 
 private fun SpinStats.formatEffectiveRake(): AnnotatedString {
