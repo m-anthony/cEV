@@ -1,92 +1,188 @@
-# cEV Calculator for Betclic
+# 🚀 Spin-cEV Calculator
 
-Compute your cEV (Chip Expected Value) for Betclic spins, filtered by buy-in and/or position.
+[English version](#-spin-cev-calculator-en) | [Version Française](#-spin-cev-calculator-fr)
 
-## Why this project?
+---
 
-The main goal of this project was to experiment with **Kotlin** while building something useful for the poker community.
-In many French poker Discord communities, beginners starting at the lowest stakes often want to track their performance
-but are reluctant to invest in a commercial tracker.
+## 🚀 Spin-cEV Calculator (EN)
 
-Currently, the tool only supports the following poker rooms :
-- **Betclic** (stable)
-- **Winamax** (beta, may not work for nitros). You need to import both the HH files and the tournament summary files
-- **IPoker** (beta, may not work for games where a disconnection occurred since the HH file may have some mandatory data missing)
-French market).
+Compute your **cEV (Chip Expected Value)** for Poker Spins, filtered by buy-in and position. An easy-to-use tool designed for the poker community.
 
-I plan to add support for Unibet as soon as they release their new HH format.
+### 🌟 Why this project?
+The main goal is to provide a **simple, one-click solution** for players who want to track their actual performance (cEV) and monetary results without the complexity of a full commercial tracker. I focused on getting you your results as fast as possible with minimal configuration.
 
-If you want to have another room supported, you can either provide your own PR, or open an issue with the specification of the HH format
+### Supported Rooms:
+* **Betclic**: ✅ Stable.
+* **Winamax**: ✅ Stable (Supports both Nitro and Classic formats).
+* **iPoker Network**: ✅ Stable (iPoker.fr, etc.).
+* **Unibet**: ⏳ Pending their new Hand History format.
 
-## Installation for End Users
+> **Don't see your room?**
+> If you would like to have another room supported, feel free to **submit a Pull Request** or **open an issue** with the specific Hand History (HH) format specifications.
 
-* **Java Requirements:** You must have **Java 21 or higher** installed. You can download it for free from [Adoptium (Temurin)](https://adoptium.net/fr/temurin/releases) or any JDK vendor of your choice.
-* **Download:** Get the ZIP file from the [latest release](https://github.com/m-anthony/cEV/releases).
-* **Setup:**
-    1. Unzip the archive.
-    2. Edit the `cev.config.txt` file in the `bin` folder to point the software to your Hand History directory.
-    3. Run `cev.bat` (Windows) or `./cev` (macOS / Linux).
-    4. Specify the file you want to analyze, or leave it empty to scan the entire folder.
+---
 
-## How to Build
+### 💾 Installation & Download
 
-When cloning the project, ensure you use the `--recursive` flag because it includes a Git submodule:
-`git clone --recursive [URL]`
+Download the version corresponding to your system from the [Releases](https://github.com/m-anthony/cEV/releases) page.
 
-If you have already cloned the repository without this flag, you can fix it by running:
-`git submodule update --init --recursive`
+#### Windows
+* **Installer (.msi)**: Recommended for a standard installation with a desktop shortcut.
+* **Portable Version (.zip)**: If you prefer not to install anything, simply unzip and run `Spin-cEV-calculator.exe`.
 
-Once ready, a standard `./gradlew build` will work. Note that the first build may take a few minutes as it generates the preflop equity tables.
+#### macOS
+* **Disk Image (.dmg)**: Recommended. Open the image and drag the app to your Applications folder.
+* **Portable Version (.zip)**: Unzip and run the application directly.
 
-## How It Works
+> **Note:** The application includes its own runtime environment. You do not need to install Java or any other software to run it.
 
-The parser extracts the actual chip results for **Hero** from each hand. However, when an all-in occurs before the river, the actual result is replaced by Hero's **Equity** (Expected Value).
-* The **cEV** of a tournament is the sum of the cEV of all hands played.
-* The average cEV across all tournaments is a key performance indicator, which can also be used for variance simulations in tools like **SwongSim**.
+---
 
-### Performance Optimizations
+### 🛡️ Security and Trust
 
-To compute equity efficiently, the tool uses the [SKPokerEval](https://github.com/kennethshackleton/SKPokerEval) algorithm. I created a Java-based fork of this algorithm with a more efficient hash table (included as a submodule).
+#### A Note on Skepticism
+In the poker world, being skeptical about the software you install is a vital habit for your security. Protecting your accounts and data is a priority. This is why this project is fully open-source and follows a transparent publication process.
 
-* **Postflop Equity:** The tool simulates every possible turn and/or river card and runs SKPokerEval. With a maximum of 990 possible combinations, this is extremely fast.
-* **Preflop Equity:** This is more complex. A 2-way preflop matchup involves over 1.7 million possible boards.
-    * **Heads-up (2-way):** Equities are precomputed during the build and the cache is loaded at startup for near-instant results.
-    * **3-way:** These are approximated using **Monte-Carlo simulations**.
+#### Unsigned Binaries & Antivirus
+Because this is an independent open-source project, the binaries are not "signed" with expensive certificates from Microsoft or Apple. This may trigger a warning on the first launch:
 
-Even though 3-way all-ins are rarer, they are the most CPU-intensive part of the process. To maintain speed, these calculations are performed in parallel using **Kotlin Coroutines**.
+* **Windows SmartScreen**: Click *"More info"* then *"Run anyway"*.
+* **macOS Gatekeeper**: If the app is blocked, go to `System Settings` > `Privacy & Security` and click *"Open Anyway"* at the bottom of the page.
 
-**Result:** These optimizations allow the tool to process 22k Spin Hand Histories in less than 5 seconds on a Core i5-11400F.
+#### Transparency & Verification
+To ensure total integrity, the installation files are not created on a personal computer. They are **automatically built by GitHub's secure servers** directly from the public source code.
 
-## Preflop Equity Cache & Canonical Hand Pairs
+For advanced users, you can verify this by checking the **SHA-256 checksums** provided in the release notes. You can compare these hashes with the logs in the [GitHub Artifact Attestations](https://github.com/m-anthony/cEV/attestations) tab to guarantee that the binary you downloaded is exactly the one produced by the code you see here, without any human interference.
 
-Caching every possible hand matchup would lead to $1,624,350$ possibilities. Fortunately, through symmetry, this can be greatly reduced:
-* There are only **169 hand classes** (AA, ATs, 97o, etc.).
-* By applying ordering rules and suit symmetries (e.g., in ATo vs KQs, only 3 suit combinations actually change the equity), the cache is reduced to **58,630 canonical hand pairs**.
+---
 
-This reduced set is small enough to fit in memory and can be precomputed in under 5 minutes on a modern CPU. Note that end users do not need to do this, as the cache is included in the release package.
+### ⚠️ Warning: Data Retention (Winamax)
 
-## Why does my cEV differ from other tools?
+**Important note for Winamax players:**
+Winamax automatically deletes your hand history files from your computer after **60 days**.
+* Once deleted, this tool can no longer process those tournaments.
+* **Advice**: To keep a long-term history of your results, I strongly recommend making **manual backups** of your Winamax hand history folders to another location.
 
-If you notice differences between this tool and another (such as PokerTracker 4 or Hand2Note), keep in mind that cEV is
-a metric that requires a large sample size of tournaments to be meaningful. On such representative samples, 
-any discrepancies should be negligible.
+---
 
-The most common root causes for these differences include:
-- **Equity Calculation Methods**: This tool uses exact equity calculations for most scenarios but relies on Monte-Carlo approximations for 3-way pots. Other tools may use different iteration counts or different algorithms entirely.
-- **Side Pot Logic**: I have implemented the same logic as PokerTracker 4: equity-based cEV is only calculated if every active player is all-in on the same street. If action continues in a side pot, the actual chip result is used instead.
-- **Software Bugs**: While cross-referencing my results with PT4, I actually discovered a bug in their calculation engine and reported it to their support team. If you believe you have found a calculation error for a specific hand in this tool, please open an issue with the hand history attached.
+### ⚙️ How It Works
 
-## Glossary: Statistics Explained
+The tool analyzes your files to extract **Hero's** chip results. In the event of an "All-in" before the river, the actual result is replaced by the theoretical equity (**Expected Value**).
 
-* **Winnings**: Total net profit. All buy-ins have already been deducted from this amount.
-* **ITM% (In The Money)**: The proportion of tournaments where you reached a paid position. This includes 2nd and 3rd place finishes in "Jackpot" formats where the prize pool is distributed among all players.
-* **ROI% (Return on Investment)**: Your total return relative to the capital invested, `Winnings / Sum of all Buy-ins`
-* **cEV per Position**: Average All-in Adjusted EV (in chips) for that specific position.
-    * *Note*: the Heads-Up cEV calculation includes tournaments where you finished 3rd. Some other tools (such as Xeester) exclude these cases.
-* **cEV Std Dev**: The observed standard deviation of your cEV. This metric is essential for running "EV mode" simulations in **SwongSim**.
-* **cEV CI 95% +/-**: The 95% Confidence Interval.
-    * *Example*: If your observed cEV is 50 and the CI is 5, there is a 95% probability that your "true" win rate lies between 45 and 55.
-    * *Note*: This is a statistical approximation based on a **Normal Distribution**. However, cEV distribution in Spin & Go is typically "fat-tailed" (extreme results like -500 chips are more frequent than a normal law would predict).
-* **Eff. Rake % (Effective Rake)**: The actual rake you paid based on your specific multiplier distribution.
-    * This can differ significantly from the **Theoretical Rake** if you have been lucky or unlucky with jackpot hits.
-    * This is especially true in "jackpot-heavy" structures where a large portion of the prize pool is concentrated in very rare multipliers.
+#### Performance
+The engine is highly optimized, using a mix of pre-calculated equity tables and parallel processing. It can process **20,000+ Spins** in less than 5 seconds on a standard modern computer with SSD storage.
+
+---
+
+### 📊 Why does my cEV differ from other tools?
+
+If you notice discrepancies between this tool and others (like PokerTracker 4 or Hand2Note), keep in mind:
+
+- **3-Way All-ins**: This tool uses Monte Carlo simulations for 3-way pots. Slight variations are normal compared to tools using different algorithms.
+- **Side Pot Logic**: I follow the same logic as PokerTracker 4: equity-based cEV is only calculated if every active player is all-in on the same street. If action continues in a side pot, the actual chip result is used. Other tools may have different rules.
+- **Specific Hand Issues**: If you find a massive discrepancy for a specific hand, please open an issue and attach the hand history file so I can investigate.
+
+---
+
+### 🛠️ Development (How to Build)
+
+If you are a developer and want to compile the project yourself:
+
+1.  **Clone**: `git clone --recursive https://github.com/m-anthony/cEV` (required for the equity calculation submodule).
+2.  **Build**: `./gradlew build`.
+3.  **Package for your OS**:
+    * Run `./gradlew :cev-ui:packageDistributionForCurrentOS` to create the installer/package for your current platform.
+    * Or use `./gradlew :cev-ui:createDistributable` for a local runnable version.
+
+---
+---
+
+## 🚀 Spin-cEV Calculator (FR)
+
+Calculez votre **cEV (Chip Expected Value)** pour les Spins, filtré par buy-in et par position. Un outil simple d'utilisation conçu pour la communauté poker.
+
+### 🌟 Pourquoi ce projet ?
+L'objectif principal est de fournir une **solution simple en un clic** pour les joueurs qui souhaitent suivre leurs performances réelles (cEV) et leurs résultats financiers sans la complexité d'un tracker commercial complet. Je me suis concentré sur l'obtention de vos résultats le plus rapidement possible avec une configuration minimale.
+
+### Rooms supportées :
+* **Betclic** : ✅ Stable.
+* **Winamax** : ✅ Stable (Supporte les formats Nitro et Classique).
+* **iPoker Network** : ✅ Stable (iPoker.fr, etc.).
+* **Unibet** : ⏳ En attente de leur nouveau format de Hand History.
+
+> **Votre room n'est pas listée ?**
+> Si vous souhaitez qu'une autre room soit supportée, n'hésitez pas à **soumettre une Pull Request** ou à **ouvrir une issue** avec les spécifications du format de Hand History (HH).
+
+---
+
+### 💾 Installation & Téléchargement
+
+Téléchargez la version correspondant à votre système sur la page des [Releases](https://github.com/m-anthony/cEV/releases).
+
+#### Windows
+* **Installateur (.msi)** : Recommandé pour une installation standard avec un raccourci bureau.
+* **Version Portable (.zip)** : Si vous préférez ne rien installer, décompressez simplement et lancez `Spin-cEV-calculator.exe`.
+
+#### macOS
+* **Image Disque (.dmg)** : Recommandé. Ouvrez l'image et faites glisser l'application dans votre dossier Applications.
+* **Version Portable (.zip)** : Décompressez et lancez l'application directement.
+
+> **Note :** L'application inclut son propre environnement d'exécution. Vous n'avez pas besoin d'installer Java ou tout autre logiciel pour la lancer.
+
+---
+
+### 🛡️ Sécurité et Confiance
+
+#### Un mot sur le scepticisme
+Dans le monde du poker, être sceptique vis-à-vis des logiciels que vous installez est une habitude vitale pour votre sécurité. La protection de vos comptes et de vos données est une priorité. C'est pourquoi ce projet est entièrement open-source et suit un processus de publication transparent.
+
+#### Binaires non signés & Antivirus
+Comme il s'agit d'un projet open-source indépendant, les binaires ne sont pas "signés" avec des certificats coûteux de Microsoft ou Apple. Cela peut déclencher un avertissement lors du premier lancement :
+
+* **Windows SmartScreen** : Cliquez sur *"Informations complémentaires"* puis sur *"Exécuter quand même"*.
+* **macOS Gatekeeper** : Si l'application est bloquée, allez dans `Réglages Système` > `Confidentialité et sécurité` et cliquez sur *"Ouvrir quand même"* en bas de la page.
+
+#### Transparence & Vérification
+Pour garantir une intégrité totale, les fichiers d'installation ne sont pas créés sur un ordinateur personnel. Ils sont **automatiquement compilés par les serveurs sécurisés de GitHub** directement à partir du code source public.
+
+Pour les utilisateurs avancés, vous pouvez vérifier cela en consultant les **checksums SHA-256** fournis dans les notes de mise à jour. Vous pouvez comparer ces empreintes avec les journaux de l'onglet [GitHub Artifact Attestations](https://github.com/m-anthony/cEV/attestations) pour garantir que le binaire que vous avez téléchargé est exactement celui produit par le code que vous voyez ici, sans aucune intervention humaine.
+
+---
+
+### ⚠️ Attention : Conservation des données (Winamax)
+
+**Note importante pour les joueurs Winamax :**
+Winamax supprime automatiquement vos fichiers d'historique de mains de votre ordinateur après **60 jours**.
+* Une fois supprimées, cet outil ne peut plus traiter ces tournois.
+* **Conseil** : Pour conserver un historique de vos résultats à long terme, je vous recommande fortement de faire des **sauvegardes manuelles** de vos dossiers d'historique de mains Winamax vers un autre emplacement.
+
+---
+
+### ⚙️ Fonctionnement
+
+L'outil analyse vos fichiers pour extraire les résultats en jetons de **Hero**. En cas de "All-in" avant la river, le résultat réel en jetons est remplacé par l'équité théorique (**Expected Value**).
+
+#### Performance
+Le moteur est hautement optimisé, utilisant un mélange de tables d'équité pré-calculées et de traitement parallèle. Il peut traiter plus de **20 000 Spins** en moins de 5 secondes sur un ordinateur moderne standard équipé d'un stockage SSD.
+
+---
+
+### 📊 Pourquoi mon cEV diffère-t-il d'autres outils ?
+
+Si vous remarquez des écarts entre cet outil et d'autres (comme PokerTracker 4 ou Hand2Note), gardez à l'esprit que :
+
+- **All-ins en 3-Way** : Cet outil utilise des simulations Monte Carlo pour les pots en 3-way. De légères variations sont normales par rapport aux outils utilisant des algorithmes différents.
+- **Logique de Side Pot** : Je suis la même logique que PokerTracker 4 : le cEV basé sur l'équité n'est calculé que si tous les joueurs actifs sont à tapis sur la même street. Si l'action continue dans un side pot, le résultat réel en jetons est utilisé. D'autres outils peuvent avoir des règles différentes.
+- **Problèmes sur des mains spécifiques** : Si vous constatez un écart massif sur une main spécifique, merci d'ouvrir une "issue" et de joindre le fichier d'historique de la main pour que je puisse enquêter.
+
+---
+
+### 🛠️ Développement (Comment compiler)
+
+Si vous êtes un développeur et souhaitez compiler le projet vous-même :
+
+1.  **Cloner** : `git clone --recursive https://github.com/m-anthony/cEV` (requis pour le sous-module de calcul d'équité).
+2.  **Compiler** : `./gradlew build`.
+3.  **Packager pour votre OS** :
+    * Lancez `./gradlew :cev-ui:packageDistributionForCurrentOS` pour créer l'installateur/paquet pour votre plateforme actuelle.
+    * Ou utilisez `./gradlew :cev-ui:createDistributable` pour une version exécutable localement.
