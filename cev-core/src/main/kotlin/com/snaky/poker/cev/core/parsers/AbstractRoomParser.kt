@@ -5,6 +5,7 @@ import com.snaky.poker.cev.core.equitiesMultiWay
 import com.snaky.poker.cev.core.equityHeadsUp
 import com.snaky.poker.cev.core.model.*
 import kotlinx.coroutines.*
+import org.apache.logging.log4j.kotlin.logger
 import java.io.BufferedReader
 import java.io.InputStream
 import kotlin.concurrent.Volatile
@@ -33,13 +34,13 @@ abstract class AbstractRoomParser: AutoCloseable {
     private val _spins = hashMapOf<String, Spin>()
 
 
-    fun parseFile(s: InputStream) {
+    fun parseFile(s: InputStream, fileName: String) {
         try {
             parseFile(s.bufferedReader())
             currentSpinCount = spins.size
         } catch (e: Exception) {
-            if(this::hand.isInitialized) println("Exception in hand ${hand.id}")
-            println(e)
+            val msg = if(this::hand.isInitialized) ", after hand ${hand.id}" else ""
+            logger.warn(e) { "Error in file $fileName$msg"}
         }
         if (asyncTasks.isNotEmpty()) {
             val tasks = asyncTasks
@@ -77,6 +78,7 @@ abstract class AbstractRoomParser: AutoCloseable {
     protected fun registerAsyncTask(t: () -> Unit) = asyncTasks.add(t)
     protected fun registerSpin(id: String) {
         spin = _spins.computeIfAbsent(id) {
+            logger.trace { "creating spin $it" }
             Spin(it, room)
         }
     }

@@ -27,6 +27,7 @@ dependencies {
     implementation(compose.material3)
     implementation(compose.ui)
     implementation(compose.materialIconsExtended)
+    implementation(libs.bundles.log4j)
 }
 val appName = "Spin-cEV-calculator"
 val uiGeneratedDir = layout.buildDirectory.dir("generated/ui-resources")

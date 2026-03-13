@@ -1,6 +1,8 @@
 package com.snaky.poker.cev.core.model
 
+import org.apache.logging.log4j.kotlin.logger
 import kotlin.math.roundToInt
+
 
 data class PayoutScheme(
     val name: String,
@@ -12,7 +14,7 @@ data class PayoutScheme(
     init {
         val avgMultiplier = tiers.sumOf { it.multiplier * it.weight } / weightSum.toDouble()
         val rakeStr = "%.2f".format(100 * (1 - (avgMultiplier / 3)))
-        println("new repartition for $room($name), rake = $rakeStr%")
+        logger.info { "new repartition for $room($name), rake = $rakeStr%" }
     }
 }
 

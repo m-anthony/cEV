@@ -1,11 +1,11 @@
 package com.snaky.poker.cev.ui
 
 import com.snaky.poker.cev.core.model.PayoutScheme
+import kotlinx.coroutines.*
+import org.apache.logging.log4j.kotlin.logger
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.LongAdder
-import kotlin.collections.forEachIndexed
 import kotlin.math.roundToInt
-import kotlinx.coroutines.*
 
 // Ce que l'UI envoie au moteur
 data class VarianceParams(
@@ -39,7 +39,7 @@ private const val PLACE_CHANCE_TOTAL = 10_000
 object VarianceSimulationEngine {
 
     suspend fun run(params: VarianceParams, progressAdder: LongAdder): VarianceReport = withContext(Dispatchers.Default) {
-        println("Simulation Params: $params")
+        this@VarianceSimulationEngine.logger.info { "Simulation Params: $params" }
         val scheme = params.payoutScheme
         val avgMultiplier = scheme.tiers.sumOf { it.multiplier * it.weight } / scheme.weightSum.toDouble()
         val avgRake = 1 - avgMultiplier / 3.0
@@ -200,7 +200,7 @@ object VarianceSimulationEngine {
         rake: Double,
         avgRoi: Double
     ): VarianceReport {
-        println("building report on ${results.size} simulations")
+        logger.info { "building report on ${results.size} simulations" }
         val count = results.size
         val pLevels = listOf(1, 10, 25, 50, 75, 90, 99)
 

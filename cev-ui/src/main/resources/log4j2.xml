@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="logDir">${sys:logDir}</Property>
+        <Property name="mainPattern">%d{HH:mm:ss.SSS} %-5level %c{1} - %msg%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="${mainPattern}"/>
+        </Console>
+
+        <RollingFile name="FileAppender"
+                fileName="${logDir}/spin-cev-calculator.log"
+                filePattern="${logDir}/spin-cev-calculator-%d{yyyy-MM-dd}.log"
+                createOnDemand="true">
+            <PatternLayout pattern="${mainPattern}"/>
+            <TimeBasedTriggeringPolicy />
+            <DefaultRolloverStrategy>
+                <Delete basePath="${logDir}" maxDepth="1">
+                    <IfFileName glob="spin-cev-calculator-*.log" />
+                    <IfLastModified age="30d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="com.snaky.poker.cev" level="INFO" additivity="false">
+            <AppenderRef ref="FileAppender"/>
+            <AppenderRef ref="ConsoleAppender"/>
+        </Logger>
+
+        <Root level="INFO">
+            <AppenderRef ref="FileAppender" level="WARN"/>
+            <AppenderRef ref="ConsoleAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

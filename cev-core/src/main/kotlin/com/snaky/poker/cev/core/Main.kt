@@ -25,7 +25,7 @@ fun main() {
     val parser = MetaParser()
     val processingTime = measureTimedValue {
         runBlocking {
-            processFileOrDirectory(file, parser)
+            FileCrawler.processFileOrDirectory(file, parser)
             parser.waitForResults()
         }
         parser.close()

@@ -1,5 +1,7 @@
 package com.snaky.poker.cev.core.model
 
+import org.apache.logging.log4j.kotlin.logger
+
 class Spin(
     val id: String,
     val room: Room
@@ -38,14 +40,30 @@ class Spin(
     }
 
     fun aggregateHands(schemeProvider: (Spin) -> PayoutScheme) {
-        valid = buyInCents > 0 && !hands.isEmpty()
-        if(!valid) return //may happen on corrupted iPoker files or winamax summary without HH
+
+        if(buyInCents == 0) {
+            //may happen on corrupted iPoker files or winamax summary without HH
+            logger.warn { "spin $id invalid : unknown buy in" }
+            valid = false
+            return
+        } else if(hands.isEmpty()){
+            logger.warn { "spin $id invalid : no hands" }
+            valid = false
+            return
+        }
         val sortedHands = hands.sortedWith(compareBy<Hand> { it.timestamp }.thenBy { it.id })
         var heroStack = startingStack * detailedStackMultiplier
-        valid = sortedHands[0].players.all { it.stack == heroStack }
+        if(!sortedHands[0].players.all { it.stack == heroStack }) {
+            logger.warn { "spin $id invalid : first hand is missing (uneven stacks)" }
+            valid = false
+            return
+        }
         for(hand in sortedHands){
-            if(!valid) return
-            valid = hand.hero.stack == heroStack
+            if(hand.hero.stack != heroStack) {
+                logger.warn { "spin $id invalid : hero stack on hand ${hand.id} is ${hand.hero.stack} instead of $heroStack from previous hand" }
+                valid = false
+                return
+            }
             heroStack += hand.hero.let { it.remaining - it.stack }
             hand.cev /= detailedStackMultiplier
             cev += hand.cev
@@ -55,6 +73,9 @@ class Spin(
 
         //valid if all hands are contiguous + hero wins/lose/made a deal
         valid = heroStack == 0 || heroStack == 3 * startingStack * detailedStackMultiplier || (winCents > 0 && winCents < 0.7 * multiplier * buyInCents)
+        if(!valid) {
+            logger.warn { "spin $id invalid : hero final stack = $heroStack, startingStack = $startingStack" }
+        }
 
         profile = SpinProfile(
             buyInCents = buyInCents,

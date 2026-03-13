@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
+import org.apache.logging.log4j.kotlin.logger
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -68,7 +69,7 @@ object VarianceSimulator {
                 yield()
             }
         } catch (_: CancellationException) {
-            println("!!! Simulation cancelled at $currentIteration")
+            logger.trace { "Simulation cancelled at $currentIteration" }
         }
 
         // The return value of withContext is determined here

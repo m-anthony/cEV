@@ -12,6 +12,7 @@ import com.snaky.poker.cev.ui.VarianceReport
 import com.snaky.poker.cev.ui.VarianceSimulationEngine
 import com.snaky.poker.cev.ui.view.VarianceUiState
 import kotlinx.coroutines.*
+import org.apache.logging.log4j.kotlin.logger
 import java.util.concurrent.atomic.LongAdder
 import kotlin.time.measureTimedValue
 
@@ -94,7 +95,7 @@ class VarianceViewModel {
         val payoutScheme = currentPayoutScheme
         if(payoutScheme == null){
             //shouldn't happen, the view must disable the button while there is no valid scheme selected
-            println("*** ERROR : no payoutscheme selected, the view should prevent that")
+            logger.error {"no payoutScheme selected, the view should prevent that"}
             return
         }
         val finalParams = buildVarianceParams(payoutScheme, viewParams).also { lastAppliedParams = it }
@@ -115,7 +116,7 @@ class VarianceViewModel {
                 measureTimedValue {
                     report = VarianceSimulationEngine.run(finalParams, progressAdder)
                 }.also {
-                    println("Simulation took : ${it.duration}")
+                    this@VarianceViewModel.logger.info { "Simulation took : ${it.duration}" }
                 }
             } catch (_: CancellationException) {
                 // simulation has been cancelled

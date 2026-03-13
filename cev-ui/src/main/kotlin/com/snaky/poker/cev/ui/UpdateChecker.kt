@@ -21,9 +21,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.apache.logging.log4j.kotlin.logger
 import java.awt.Desktop
 import java.net.HttpURLConnection
 import java.net.URI
+
 
 object UpdateChecker {
     private const val GITHUB_API_URL = "https://api.github.com/repos/m-anthony/cEV/releases/latest"
@@ -114,7 +116,7 @@ fun UpdateBanner() {
                     try {
                         Desktop.getDesktop().browse(URI("https://github.com/m-anthony/cEV/releases/latest"))
                     } catch (e: Exception) {
-                        println("Could not open browser: ${e.message}")
+                        logger.warn { "Could not open browser: ${e.message}" }
                     }
                 }
             )
