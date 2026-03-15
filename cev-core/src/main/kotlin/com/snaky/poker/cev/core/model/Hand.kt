@@ -1,4 +1,4 @@
-package com.snaky.poker.cev.core
+package com.snaky.poker.cev.core.model
 
 class Hand(
     val id: String,

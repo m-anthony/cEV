@@ -1,6 +1,15 @@
-package com.snaky.poker.cev.core
+package com.snaky.poker.cev.core.parsers
 
-import com.snaky.poker.cev.core.Hand.Position
+import com.snaky.poker.cev.core.model.Action
+import com.snaky.poker.cev.core.model.ActionType
+import com.snaky.poker.cev.core.BetTracker
+import com.snaky.poker.cev.core.model.MultiplierTier
+import com.snaky.poker.cev.core.model.PayoutScheme
+import com.snaky.poker.cev.core.model.CardSet
+import com.snaky.poker.cev.core.model.Hand
+import com.snaky.poker.cev.core.model.Hand.Position
+import com.snaky.poker.cev.core.model.Room
+import com.snaky.poker.cev.core.model.Spin
 import java.io.BufferedReader
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -10,6 +19,8 @@ class BetclicParser : AbstractRoomParser() {
 
     private var state = ParserState.INIT
     private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    override val room: Room = Room.BETCLIC
+    override val payoutProvider: (Spin) -> PayoutScheme = BetclicPayouts
 
     override fun parseFile(reader: BufferedReader) {
         var line = reader.readLine()
@@ -195,4 +206,42 @@ class BetclicParser : AbstractRoomParser() {
         abstract fun parseLine(l: String, parser: BetclicParser): ParserState
     }
 
+}
+
+private object BetclicPayouts: (Spin) -> PayoutScheme{
+
+    override fun invoke(spin: Spin): PayoutScheme = when {
+        spin.buyIn < 200.0 -> STANDARD
+        else -> SPIN200
+    }
+
+    val STANDARD = PayoutScheme(
+        name = "Standard",
+        room = Room.BETCLIC,
+        tiers = listOf(
+            MultiplierTier(2, 478_185),
+            MultiplierTier(3, 346_210),
+            MultiplierTier(4, 130_000),
+            MultiplierTier(5, 40_000),
+            MultiplierTier(10,5_000),
+            MultiplierTier(listOf(15, 3, 2), 500),
+            MultiplierTier(listOf(75, 15, 10), 100),
+            MultiplierTier(listOf(750, 150, 100), 5)
+        )
+    )
+
+    val SPIN200 = PayoutScheme(
+        name = "200 EUR",
+        room = Room.BETCLIC,
+        tiers = listOf(
+            MultiplierTier(2, 479_337),
+            MultiplierTier(3, 345_442),
+            MultiplierTier(4, 130_000),
+            MultiplierTier(5, 40_000),
+            MultiplierTier(10, 5_000),
+            MultiplierTier(listOf(37.5, 7.5, 5), 200),
+            MultiplierTier(listOf(375, 75, 50), 20),
+            MultiplierTier(listOf(3750, 750, 500), 1)
+        )
+    )
 }

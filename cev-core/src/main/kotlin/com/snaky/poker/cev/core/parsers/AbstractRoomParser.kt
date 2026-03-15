@@ -1,5 +1,10 @@
-package com.snaky.poker.cev.core
+package com.snaky.poker.cev.core.parsers
 
+import com.snaky.poker.cev.core.BetTracker
+import com.snaky.poker.cev.core.equitiesMultiWay
+import com.snaky.poker.cev.core.equityHeadsUp
+import com.snaky.poker.cev.core.model.PayoutScheme
+import com.snaky.poker.cev.core.model.*
 import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.InputStream
@@ -7,6 +12,8 @@ import kotlin.concurrent.Volatile
 
 abstract class AbstractRoomParser: AutoCloseable {
 
+    abstract val payoutProvider: (Spin) -> PayoutScheme
+    abstract val room: Room
     val spins: Map<String, Spin> get() = _spins
 
     @Volatile
@@ -55,7 +62,7 @@ abstract class AbstractRoomParser: AutoCloseable {
         val iterator = _spins.values.iterator()
         while (iterator.hasNext()){
             iterator.next().run {
-                aggregateHands()
+                aggregateHands(payoutProvider)
                 if (!valid) {
                     iterator.remove()
                     invalidSpins++
@@ -69,7 +76,9 @@ abstract class AbstractRoomParser: AutoCloseable {
 
     protected fun registerAsyncTask(t: () -> Unit) = asyncTasks.add(t)
     protected fun registerSpin(id: String) {
-        spin = _spins.computeIfAbsent(id, ::Spin)
+        spin = _spins.computeIfAbsent(id) {
+            Spin(it, room)
+        }
     }
     protected fun registerAction(action: Action, updateRemaining: Boolean = true){
         val player = action.player

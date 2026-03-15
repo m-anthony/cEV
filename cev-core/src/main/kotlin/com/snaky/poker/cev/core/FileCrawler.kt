@@ -1,5 +1,6 @@
 package com.snaky.poker.cev.core
 
+import com.snaky.poker.cev.core.parsers.MetaParser
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream

@@ -1,5 +1,10 @@
 package com.snaky.poker.cev.core
 
+import com.snaky.poker.cev.core.model.CARDS
+import com.snaky.poker.cev.core.model.Card
+import com.snaky.poker.cev.core.model.CardDeck
+import com.snaky.poker.cev.core.model.CardSet
+import com.snaky.poker.cev.core.model.Hand
 import io.github.kennethshackleton.skpokereval.evaluator.SevenCardsEvaluator
 import java.util.concurrent.ThreadLocalRandom
 

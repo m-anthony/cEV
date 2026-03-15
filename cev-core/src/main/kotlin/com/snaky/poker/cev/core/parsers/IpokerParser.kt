@@ -1,5 +1,9 @@
-package com.snaky.poker.cev.core
+package com.snaky.poker.cev.core.parsers
 
+import com.snaky.poker.cev.core.BetTracker
+import com.snaky.poker.cev.core.model.MultiplierTier
+import com.snaky.poker.cev.core.model.PayoutScheme
+import com.snaky.poker.cev.core.model.*
 import java.io.BufferedReader
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -14,6 +18,9 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     private var validTournament = false
     private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     private var validHand = true
+
+    override val room = Room.IPOKER
+    override val payoutProvider: (Spin) -> PayoutScheme = IpokerPayouts
 
     override fun parseFile(reader: BufferedReader) {
         xmlReader.parse(reader)
@@ -140,3 +147,42 @@ private fun String.toCardSet(): CardSet {
     return result
 }
 
+private object IpokerPayouts: (Spin) -> PayoutScheme {
+
+    override fun invoke(spin: Spin): PayoutScheme = when {
+        spin.buyIn < 200 -> STANDARD
+        else -> SPIN200
+    }
+
+    val STANDARD = PayoutScheme(
+        name = "Standard",
+        room = Room.IPOKER,
+        tiers = listOf(
+            MultiplierTier(2, 45_508),
+            MultiplierTier(3, 38_128),
+            MultiplierTier(4, 13_000),
+            MultiplierTier(5, 3_000),
+            MultiplierTier(listOf(7.5, 1.5, 1), 300),
+            MultiplierTier(listOf(15, 3, 2), 50),
+            MultiplierTier(listOf(75, 15, 10), 10),
+            MultiplierTier(listOf(150, 30, 20), 3),
+            MultiplierTier(listOf(750, 150, 100), 1)
+        )
+    )
+
+    val SPIN200 = PayoutScheme(
+        name = "200 EUR",
+        room = Room.IPOKER,
+        tiers = listOf(
+            MultiplierTier(2, 49_999),
+            MultiplierTier(3, 31_743),
+            MultiplierTier(4, 13_412),
+            MultiplierTier(5, 4_000),
+            MultiplierTier(listOf(7.5, 1.5, 1), 750),
+            MultiplierTier(listOf(18.75, 3.75, 2.5), 75),
+            MultiplierTier(listOf(37.5, 7.5, 5), 15),
+            MultiplierTier(listOf(75, 15, 10), 5),
+            MultiplierTier(listOf(1875, 375, 250), 1)
+        )
+    )
+}

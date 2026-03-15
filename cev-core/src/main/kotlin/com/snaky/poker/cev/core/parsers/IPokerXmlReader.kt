@@ -1,4 +1,4 @@
-package com.snaky.poker.cev.core
+package com.snaky.poker.cev.core.parsers
 
 import java.io.BufferedReader
 import javax.xml.stream.XMLInputFactory

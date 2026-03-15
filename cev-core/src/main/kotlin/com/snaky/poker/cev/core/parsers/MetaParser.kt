@@ -1,5 +1,6 @@
-package com.snaky.poker.cev.core
+package com.snaky.poker.cev.core.parsers
 
+import com.snaky.poker.cev.core.model.Spin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.io.BufferedInputStream

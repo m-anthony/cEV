@@ -1,6 +1,7 @@
 package com.snaky.poker.cev.ui.model
 
-import com.snaky.poker.cev.core.Hand
+import com.snaky.poker.cev.core.model.Hand
+import com.snaky.poker.cev.core.SimulationResult
 
 // UI Model representing a row in our table
 data class SpinStats(
@@ -12,6 +13,7 @@ data class SpinStats(
     val roi: Double,
     val cevStdDev: Double,
     val effectiveRake: Double,
-    val positionalCev: Map<Hand.Position, Double>
+    val positionalCev: Map<Hand.Position, Double>,
+    val varianceResult: SimulationResult? = null,
 
 )

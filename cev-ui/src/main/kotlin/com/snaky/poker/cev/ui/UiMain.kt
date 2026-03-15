@@ -5,7 +5,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.snaky.poker.cev.core.MetaParser
+import com.snaky.poker.cev.core.parsers.MetaParser
 import com.snaky.poker.cev.core.processFileOrDirectory
 import com.snaky.poker.cev.ui.model.MainViewModel
 import com.snaky.poker.cev.ui.model.PokerCalculatorAPI

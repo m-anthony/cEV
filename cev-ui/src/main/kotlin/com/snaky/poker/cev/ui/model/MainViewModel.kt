@@ -1,20 +1,21 @@
 package com.snaky.poker.cev.ui.model
 
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import com.snaky.poker.cev.core.Hand.Position
-import com.snaky.poker.cev.core.Spin
+import androidx.compose.runtime.*
+import com.snaky.poker.cev.core.model.Hand.Position
+import com.snaky.poker.cev.core.model.Spin
+import com.snaky.poker.cev.core.model.SpinProfile
+import com.snaky.poker.cev.core.PlayerStat
+import com.snaky.poker.cev.core.SimulationResult
+import com.snaky.poker.cev.core.VarianceSimulator
 import com.snaky.poker.cev.ui.config.ConfigurationManager
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.*
-import kotlin.collections.plus
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 
 class MainViewModel(private val api: PokerCalculatorAPI) {
@@ -27,6 +28,8 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     private var calculationJob: Job? = null
+    private var varianceResults = mutableStateMapOf<String, SimulationResult>()
+    private var varianceJob: Job? = null
 
     val statsRows: List<SpinStats> by derivedStateOf {
         val currentSpins = allSpins.value.values
@@ -38,7 +41,11 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
             currentSpins.filter { it.startingStack == selectedStackFilter }
         }
         val showCev = selectedStackFilter != null || availableFormats.size == 1
-        transformToStats(filteredSpins, showCev)
+        val rows = transformToStats(filteredSpins, showCev)
+
+        rows.map { row ->
+            row.copy(varianceResult = varianceResults[row.label])
+        }
     }
 
     val availableFormats: Map<Int, Int> by derivedStateOf {
@@ -57,9 +64,9 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
             try {
                 withContext(Dispatchers.IO) {
                     api.calculateFromDirectories(paths)
-                }.also {
-                    allSpins.value = it.spins
-                    processingStats = it.processingStats
+                }.also { results ->
+                    processingStats = results.processingStats
+                    allSpins.value = results.spins.also { it.values.computeVariance() }
                 }
             } finally {
                 isCalculating = false
@@ -71,6 +78,46 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
             while(isCalculating) {
                 currentSpinCount = api.currentSpinCount
                 delay(200.milliseconds)
+            }
+        }
+    }
+
+    private fun Collection<Spin>.computeVariance() {
+        varianceJob?.cancel()
+        varianceResults.clear()
+
+        class StatAccumulator(var totalCEV: Double = 0.0, var count: Int = 0){
+            fun toPlayerStat() = PlayerStat(totalCEV / count, count)
+        }
+
+        //group by profile and precompute cEV
+        val accumulators = this.groupingBy { it.profile }.fold(
+            initialValueSelector = { _, s -> StatAccumulator(totalCEV = s.cev, count = 1) },
+            operation = { _, acc, spin ->
+                acc.apply {
+                    totalCEV += spin.cev
+                    count++
+                }
+            }
+        )
+        // then prepare 1 simulation task per buy in
+        val simuPerBuyIn = mutableMapOf<Double, MutableMap<SpinProfile, PlayerStat>>()
+        accumulators.forEach { (profile, acc) ->
+            simuPerBuyIn.getOrPut(profile.buyIn) { mutableMapOf() }[profile] = acc.toPlayerStat()
+        }
+
+        varianceJob = scope.launch {
+            simuPerBuyIn.forEach { (buyIn, profilePairs) ->
+                val label = formatBuyIn(buyIn)
+                launch {
+                    withTimeout(10.seconds) {
+                        VarianceSimulator.run(
+                            distribution = profilePairs,
+                            buyIn = buyIn,
+                            onResult = { varianceResults[label] = it}
+                        )
+                    }
+                }
             }
         }
     }

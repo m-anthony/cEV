@@ -1,12 +1,15 @@
 package com.snaky.poker.cev.ui.view
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +22,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -26,14 +30,16 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.snaky.poker.cev.core.Hand
+import com.snaky.poker.cev.core.model.Hand
 import com.snaky.poker.cev.ui.model.SpinStats
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StatsTable(
     rows: List<SpinStats>,
@@ -47,6 +53,7 @@ fun StatsTable(
         "Games" to { s: SpinStats -> AnnotatedString(s.count.toString()) },
         "Winnings" to { s: SpinStats -> AnnotatedString("%.2f€".format(s.netGain)) },
         "cEV" to { s -> s.formatCev() },
+        "EV$" to { s: SpinStats -> s.formatEvMoney(rows, selectedStack) },
         "ITM" to { s: SpinStats -> AnnotatedString("%.1f %%".format(s.itm * 100)) },
         "ROI" to { s: SpinStats -> AnnotatedString("%.2f %%".format(s.roi * 100)) },
         "cEV BU" to { s: SpinStats -> s.formatPositionCev(Hand.Position.BU) },
@@ -83,14 +90,53 @@ fun StatsTable(
                 val isTotal = row.label == "Total"
                 val bgColor = if (isTotal) Color.LightGray.copy(alpha = 0.3f) else Color.Transparent
 
-                Row(Modifier.background(bgColor).padding(8.dp)) {
-                    columns.forEach { (_, formatter) ->
-                        Text(
-                            text = formatter(row),
-                            modifier = Modifier.weight(1f),
-                            fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal,
-                            textAlign = TextAlign.End
-                        )
+                Row(Modifier.background(bgColor).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    columns.forEach { (title, formatter) ->
+                        val modifier = Modifier.weight(1f)
+
+                        // tooltip for EV$ per buy in
+                        if (title == "EV$" && !isTotal && row.varianceResult != null) {
+                            val res = row.varianceResult
+                            val selector = res.profitSelector(selectedStack)
+
+                            TooltipArea(
+                                modifier = modifier,
+                                delayMillis = 500,
+                                tooltip = {
+                                    Surface(
+                                        modifier = Modifier.shadow(4.dp),
+                                        color = Color(0xFF333333),
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Range (90%%): %.2f€ to %.2f€".format(
+                                                selector.invoke(res.p5Sample) / 100.0,
+                                                selector.invoke(res.p95Sample) / 100.0
+                                            ),
+                                            modifier = Modifier.padding(8.dp),
+                                            color = Color.White,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    text = formatter(row),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    fontWeight = FontWeight.Normal,
+                                    textAlign = TextAlign.End,
+                                    textDecoration = TextDecoration.Underline
+                                )
+                            }
+                        } else {
+                            // Rendu standard pour toutes les autres colonnes et le Total
+                            Text(
+                                text = formatter(row),
+                                modifier = modifier,
+                                fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal,
+                                textAlign = TextAlign.End
+                            )
+                        }
                     }
                 }
                 Divider()
@@ -198,6 +244,18 @@ private fun SpinStats.formatCev(): AnnotatedString {
             }
         }
     }
+}
+
+private fun SpinStats.formatEvMoney(allRows: List<SpinStats>, selectedStack: Int?): AnnotatedString {
+    val ev = if (label != "Total") {
+        varianceResult?.let { it.profitSelector(selectedStack).invoke(it.medianSample) / 100.0 }
+    } else {
+        allRows.filter { it != this }
+            .fold(0 as Int?) { acc, r ->
+                r.varianceResult?.let { acc?.plus(it.profitSelector(selectedStack).invoke(it.medianSample)) }
+            }?.div(100.0)
+    }
+    return AnnotatedString(ev?.let { "%.2f€".format(it) } ?: "...")
 }
 
 private fun SpinStats.getConfidenceInterval(): Pair<Int, Boolean> {
