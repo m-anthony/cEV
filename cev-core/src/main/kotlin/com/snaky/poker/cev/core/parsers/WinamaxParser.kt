@@ -113,7 +113,7 @@ class WinamaxParser : AbstractRoomParser() {
                     INIT
                 } else if(line.contains("summary")) {
                     parser.registerSpin(line.substringAfter('(').substringBefore(')'))
-                    TOURNAMENT_SUMMARY
+                    if(parser.spin.wins > 0) SKIPPED else TOURNAMENT_SUMMARY
                 } else {
                     TABLE
                 }
