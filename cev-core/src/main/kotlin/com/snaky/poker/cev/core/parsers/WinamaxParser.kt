@@ -65,8 +65,12 @@ class WinamaxParser : AbstractRoomParser() {
                 actionType = type
             }
         }
-        // the "collected XXX from pot" line should be ignored, but the player name may contain an action verb
-        if (actionIndex == -1 || line.indexOf(" collected ", actionIndex + 1) != -1) return
+        // the "collected XXX from pot" / "XXX shows" lines should be ignored, but the player name may contain an action verb
+        if (actionIndex == -1
+            || line.indexOf(" collected ", actionIndex + 1) != -1
+            || line.indexOf(" shows ", actionIndex + 1) != -1) {
+            return
+        }
         val blind = actionType == ActionType.Blind
 
         val amount = when (actionType) {
