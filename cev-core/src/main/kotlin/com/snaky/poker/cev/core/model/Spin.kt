@@ -37,8 +37,8 @@ class Spin(
     }
 
     fun aggregateHands(schemeProvider: (Spin) -> PayoutScheme) {
-        valid = buyIn > 0
-        if(hands.isEmpty() || !valid) return //may happen on corrupted iPoker files
+        valid = buyIn > 0 && !hands.isEmpty()
+        if(!valid) return //may happen on corrupted iPoker files or winamax summary without HH
         val sortedHands = hands.sortedWith(compareBy<Hand> { it.timestamp }.thenBy { it.id })
         var heroStack = startingStack
         valid = sortedHands[0].players.all { it.stack == startingStack }
