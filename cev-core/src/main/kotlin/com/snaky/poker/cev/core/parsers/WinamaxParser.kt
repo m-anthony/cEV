@@ -19,6 +19,7 @@ class WinamaxParser : AbstractRoomParser() {
 
     override val room = Room.WINAMAX
     override val payoutProvider: (Spin) -> PayoutScheme = WinamaxPayouts
+    override val getAllPayoutScheme = WinamaxPayouts.ALL
 
     override fun validateHeader(header: String): Boolean {
         return header.startsWith("Winamax Poker - Tournament \"Expresso") ||
@@ -237,6 +238,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val NANO = PayoutScheme(
         name = "0.25/0.50 EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(25, 50),
         tiers = listOf(
             MultiplierTier(2, 631_328),
             MultiplierTier(3, 232_448),
@@ -253,6 +255,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val SPIN1_10 = PayoutScheme(
         name = "1/10 EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(1_00, 10_00),
         tiers = listOf(
             MultiplierTier(2, 5_938_688),
             MultiplierTier(3, 2_674_208),
@@ -269,6 +272,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val SPIN2 = PayoutScheme(
         name = "2 EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(2_00),
         tiers = listOf(
             MultiplierTier(2, 5_966_697),
             MultiplierTier(3, 2_672_202),
@@ -285,6 +289,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val SPIN5 = PayoutScheme(
         name = "5 EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(5_00),
         tiers = listOf(
             MultiplierTier(2, 5_938_694),
             MultiplierTier(3, 2_674_204),
@@ -301,6 +306,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val SPIN25 = PayoutScheme(
         name = "25 EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(25_00),
         tiers = listOf(
             MultiplierTier(2, 5_938_670),
             MultiplierTier(3, 2_674_220),
@@ -317,6 +323,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val SPIN50 = PayoutScheme(
         name = "50 EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(50_00),
         tiers = listOf(
             MultiplierTier(2, 5_938_640),
             MultiplierTier(3, 2_674_240),
@@ -333,6 +340,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val SPIN100 = PayoutScheme(
         name = "100 EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(100_00),
         tiers = listOf(
             MultiplierTier(2, 601_328),
             MultiplierTier(3, 262_448),
@@ -349,6 +357,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
     val HIGH = PayoutScheme(
         name = "250+ EUR",
         room = Room.WINAMAX,
+        availableBuyInCents = listOf(250_00, 500_00),
         tiers = listOf(
             MultiplierTier(2, 591_613),
             MultiplierTier(3, 260_258),
@@ -361,4 +370,6 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
             MultiplierTier(listOf(3200, 480, 320), 4), //4K
         )
     )
+
+    val ALL = listOf(NANO, SPIN1_10, SPIN2, SPIN5, SPIN25, SPIN100, HIGH)
 }

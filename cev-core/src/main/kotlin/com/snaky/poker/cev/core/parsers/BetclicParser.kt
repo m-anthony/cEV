@@ -1,15 +1,8 @@
 package com.snaky.poker.cev.core.parsers
 
-import com.snaky.poker.cev.core.model.Action
-import com.snaky.poker.cev.core.model.ActionType
 import com.snaky.poker.cev.core.BetTracker
-import com.snaky.poker.cev.core.model.MultiplierTier
-import com.snaky.poker.cev.core.model.PayoutScheme
-import com.snaky.poker.cev.core.model.CardSet
-import com.snaky.poker.cev.core.model.Hand
+import com.snaky.poker.cev.core.model.*
 import com.snaky.poker.cev.core.model.Hand.Position
-import com.snaky.poker.cev.core.model.Room
-import com.snaky.poker.cev.core.model.Spin
 import java.io.BufferedReader
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -22,6 +15,7 @@ class BetclicParser : AbstractRoomParser() {
     private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     override val room: Room = Room.BETCLIC
     override val payoutProvider: (Spin) -> PayoutScheme = BetclicPayouts
+    override val getAllPayoutScheme: List<PayoutScheme> = BetclicPayouts.ALL
 
     override fun parseFile(reader: BufferedReader) {
         var line = reader.readLine()
@@ -219,6 +213,7 @@ private object BetclicPayouts: (Spin) -> PayoutScheme{
     val STANDARD = PayoutScheme(
         name = "Standard",
         room = Room.BETCLIC,
+        availableBuyInCents = listOf(20, 1_00, 2_00, 5_00, 10_00, 20_00, 50_00, 100_00),
         tiers = listOf(
             MultiplierTier(2, 478_185),
             MultiplierTier(3, 346_210),
@@ -234,6 +229,7 @@ private object BetclicPayouts: (Spin) -> PayoutScheme{
     val SPIN200 = PayoutScheme(
         name = "200 EUR",
         room = Room.BETCLIC,
+        availableBuyInCents = listOf(200_00),
         tiers = listOf(
             MultiplierTier(2, 479_337),
             MultiplierTier(3, 345_442),
@@ -245,4 +241,6 @@ private object BetclicPayouts: (Spin) -> PayoutScheme{
             MultiplierTier(listOf(3750, 750, 500), 1)
         )
     )
+
+    val ALL = listOf(STANDARD, SPIN200)
 }

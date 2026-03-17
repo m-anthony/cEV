@@ -21,6 +21,7 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
 
     override val room = Room.IPOKER
     override val payoutProvider: (Spin) -> PayoutScheme = IpokerPayouts
+    override val getAllPayoutScheme: List<PayoutScheme> = IpokerPayouts.ALL
 
     override fun parseFile(reader: BufferedReader) {
         xmlReader.parse(reader)
@@ -157,6 +158,7 @@ private object IpokerPayouts: (Spin) -> PayoutScheme {
     val STANDARD = PayoutScheme(
         name = "Standard",
         room = Room.IPOKER,
+        availableBuyInCents = listOf(1_00, 2_00, 5_00, 10_00, 20_00, 50_00, 100_00),
         tiers = listOf(
             MultiplierTier(2, 45_508),
             MultiplierTier(3, 38_128),
@@ -173,6 +175,7 @@ private object IpokerPayouts: (Spin) -> PayoutScheme {
     val SPIN200 = PayoutScheme(
         name = "200 EUR",
         room = Room.IPOKER,
+        availableBuyInCents = listOf(200_00),
         tiers = listOf(
             MultiplierTier(2, 49_999),
             MultiplierTier(3, 31_743),
@@ -185,4 +188,6 @@ private object IpokerPayouts: (Spin) -> PayoutScheme {
             MultiplierTier(listOf(1875, 375, 250), 1)
         )
     )
+
+    val ALL = listOf(STANDARD, SPIN200)
 }

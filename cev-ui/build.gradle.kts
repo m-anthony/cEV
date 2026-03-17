@@ -23,7 +23,8 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.runtime)
     implementation(compose.foundation)
-    implementation(compose.material)
+    implementation(compose.material) //TODO migration M2 -> M3
+    implementation(compose.material3)
     implementation(compose.ui)
     implementation(compose.materialIconsExtended)
 }

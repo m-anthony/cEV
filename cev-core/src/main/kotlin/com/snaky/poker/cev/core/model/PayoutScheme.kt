@@ -6,6 +6,7 @@ data class PayoutScheme(
     val name: String,
     val room: Room,
     val tiers: List<MultiplierTier>,
+    val availableBuyInCents: List<Int>,
 ) {
     val weightSum: Int = tiers.sumOf { it.weight }
     init {

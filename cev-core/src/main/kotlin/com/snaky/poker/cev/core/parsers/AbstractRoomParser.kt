@@ -3,7 +3,6 @@ package com.snaky.poker.cev.core.parsers
 import com.snaky.poker.cev.core.BetTracker
 import com.snaky.poker.cev.core.equitiesMultiWay
 import com.snaky.poker.cev.core.equityHeadsUp
-import com.snaky.poker.cev.core.model.PayoutScheme
 import com.snaky.poker.cev.core.model.*
 import kotlinx.coroutines.*
 import java.io.BufferedReader
@@ -14,6 +13,7 @@ abstract class AbstractRoomParser: AutoCloseable {
 
     abstract val payoutProvider: (Spin) -> PayoutScheme
     abstract val room: Room
+    abstract val getAllPayoutScheme: List<PayoutScheme>
     val spins: Map<String, Spin> get() = _spins
 
     @Volatile

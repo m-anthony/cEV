@@ -11,6 +11,7 @@ import com.snaky.poker.cev.ui.model.MainViewModel
 import com.snaky.poker.cev.ui.model.PokerCalculatorAPI
 import com.snaky.poker.cev.ui.model.ProcessingResults
 import com.snaky.poker.cev.ui.model.ProcessingStats
+import com.snaky.poker.cev.ui.theme.DefaultTheme
 import com.snaky.poker.cev.ui.view.MainView
 import kotlinx.coroutines.sync.Mutex
 import java.io.File
@@ -65,6 +66,7 @@ fun main() = application {
         state = windowState,
         icon = iconPainter
     ) {
+        DefaultTheme.initialize()
         MainView(viewModel)
     }
 }
