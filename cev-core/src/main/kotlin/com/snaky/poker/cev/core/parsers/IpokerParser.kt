@@ -13,7 +13,7 @@ import kotlin.math.roundToInt
 class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
 
     private val xmlReader = IPokerXmlReader(this)
-    private var prizePool = 0.0
+    private var prizePoolCents = 0
     private var heroName: String = ""
     private var validTournament = false
     private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -33,19 +33,19 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     override fun onTournamentStarted(tournamentCode: String) {
         validTournament = true
         registerSpin(tournamentCode)
-        prizePool = spin.buyIn * spin.multiplier
+        prizePoolCents = spin.buyInCents * spin.multiplier
     }
 
     override fun onTotalBuyIn(amount: Double) {
-        spin.buyIn = amount
-        spin.multiplier = (prizePool / amount).roundToInt()
+        spin.buyInCents = (amount * 100).roundToInt()
+        spin.multiplier = prizePoolCents / spin.buyInCents
     }
 
     override fun onRewardDrawn(amount: Double) {
-        prizePool = amount
-        if(spin.buyIn != 0.0) spin.multiplier = (amount / spin.buyIn).roundToInt()
+        prizePoolCents = (amount * 100).roundToInt()
+        if(spin.buyInCents != 0) spin.multiplier = prizePoolCents / spin.buyInCents
     }
-    override fun onTotalWin(amount: Double) = run {spin.wins = amount}
+    override fun onTotalWin(amount: Double) = run {spin.winCents = (amount * 100).roundToInt()}
 
 
     override fun onNewHand(handId: String) {
@@ -150,7 +150,7 @@ private fun String.toCardSet(): CardSet {
 private object IpokerPayouts: (Spin) -> PayoutScheme {
 
     override fun invoke(spin: Spin): PayoutScheme = when {
-        spin.buyIn < 200 -> STANDARD
+        spin.buyInCents < 20000 -> STANDARD
         else -> SPIN200
     }
 

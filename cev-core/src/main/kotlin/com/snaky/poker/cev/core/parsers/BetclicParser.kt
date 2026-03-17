@@ -14,6 +14,7 @@ import java.io.BufferedReader
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 class BetclicParser : AbstractRoomParser() {
 
@@ -102,7 +103,7 @@ class BetclicParser : AbstractRoomParser() {
     private fun playerFinished(l: String) {
         val player = l.substringBefore(" finished ")
         val wins = l.substringAfter(" wins ", "").substringBefore(" EUR")
-        if (!wins.isEmpty()) hand.playerFinished(player, wins.toDouble())
+        if (!wins.isEmpty()) hand.playerFinished(player, (wins.toDouble() * 100).toInt())
     }
 
 
@@ -126,7 +127,7 @@ class BetclicParser : AbstractRoomParser() {
         FILL_SPIN {
             override fun parseLine(l: String, parser: BetclicParser): ParserState {
                 return if (l.startsWith("Buy In:")) {
-                    parser.spin.buyIn = l.substringAfter(": ").substringBefore('€').toDouble()
+                    parser.spin.buyInCents = (l.substringAfter(": ").substringBefore('€').toDouble() * 100).roundToInt()
                     INIT_HAND
                 } else {
                     if (l.startsWith("Multiplier")) parser.spin.multiplier = l.substringAfter('x').toInt()
@@ -211,7 +212,7 @@ class BetclicParser : AbstractRoomParser() {
 private object BetclicPayouts: (Spin) -> PayoutScheme{
 
     override fun invoke(spin: Spin): PayoutScheme = when {
-        spin.buyIn < 200.0 -> STANDARD
+        spin.buyInCents < 20000 -> STANDARD
         else -> SPIN200
     }
 

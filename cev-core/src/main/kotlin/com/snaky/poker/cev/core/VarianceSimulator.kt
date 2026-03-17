@@ -21,7 +21,7 @@ object VarianceSimulator {
 
     suspend fun run(
         distribution: Map<SpinProfile, PlayerStat>,
-        buyIn: Double,
+        buyInCents: Int,
         maxIterations: Int = 100_000,
         onResult: (SimulationResult) -> Unit
     ): Unit = withContext(Dispatchers.Default) {
@@ -41,7 +41,7 @@ object VarianceSimulator {
                 p1 = p1,
                 p2 = (1.0 - p1) * (p1 / (p1 + (1.0 / 3.0))),
                 count = stats.gameCount,
-                buyInCents = (100 * profile.buyIn).roundToInt(),
+                buyInCents = profile.buyInCents,
                 stackSizeIndex = stacks.indexOf(profile.initialStack)
             )
         }
@@ -63,7 +63,7 @@ object VarianceSimulator {
                 }
                 // Intermediate publishing
                 val currentSnapshot = samples.toMutableList().apply { sort() }
-                val intermediateResult = buildResult(buyIn, currentSnapshot.toList(), totalTheoreticalAvg, stacks)
+                val intermediateResult = buildResult(buyInCents, currentSnapshot.toList(), totalTheoreticalAvg, stacks)
                 onResult(intermediateResult)
                 yield()
             }
@@ -75,7 +75,7 @@ object VarianceSimulator {
         withContext(NonCancellable) {
             if (samples.isNotEmpty()) {
                 val finalResult = buildResult(
-                    buyIn = buyIn,
+                    buyInCents = buyInCents,
                     samples = samples.apply { sort() },
                     theoreticalAvg = totalTheoreticalAvg,
                     stacks = stacks,
@@ -144,7 +144,7 @@ object VarianceSimulator {
         return tiers[tiers.size - 1] // Faster than .last()
     }
 
-    private fun buildResult(buyIn: Double, samples: List<SimulationSample>, theoreticalAvg: Double, stacks: IntArray): SimulationResult {
+    private fun buildResult(buyInCents: Int, samples: List<SimulationSample>, theoreticalAvg: Double, stacks: IntArray): SimulationResult {
         val size = samples.size
         if (size == 0) throw IllegalStateException("Simulation was interrupted before any iteration completed.")
 
@@ -158,7 +158,7 @@ object VarianceSimulator {
         val stdDev = sqrt(sumSqr / size.toDouble() - mean * mean)
 
         return SimulationResult(
-            buyIn = buyIn,
+            buyInCents = buyInCents,
             avgProfitCents = theoreticalAvg,
             medianSample = samples[size / 2],
             p5Sample = samples[(size * 0.05).toInt()],
@@ -171,7 +171,7 @@ object VarianceSimulator {
 }
 
 data class SimulationResult(
-    val buyIn: Double,
+    val buyInCents: Int,
     val stacks: List<Int>,
     val medianSample: SimulationSample,
     val p5Sample: SimulationSample,

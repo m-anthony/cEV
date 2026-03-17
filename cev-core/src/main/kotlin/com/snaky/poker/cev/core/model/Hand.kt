@@ -47,8 +47,8 @@ class Hand(
         findPlayer(playerName).remaining += chips
     }
 
-    fun playerFinished(playerName: String, wins: Double) {
-        if (playerName == hero.name) spin.wins = wins
+    fun playerFinished(playerName: String, winCents: Int) {
+        if (playerName == hero.name) spin.winCents = winCents
     }
 
     override fun equals(other: Any?): Boolean {

@@ -5,9 +5,9 @@ class Spin(
     val room: Room
 ) {
     var startingStack = 500
-    var buyIn = 0.0
+    var buyInCents = 0
     var multiplier = 0
-    var wins = 0.0
+    var winCents = 0
     val hands = mutableSetOf<Hand>()
     lateinit var profile: SpinProfile
         private set
@@ -37,7 +37,7 @@ class Spin(
     }
 
     fun aggregateHands(schemeProvider: (Spin) -> PayoutScheme) {
-        valid = buyIn > 0 && !hands.isEmpty()
+        valid = buyInCents > 0 && !hands.isEmpty()
         if(!valid) return //may happen on corrupted iPoker files or winamax summary without HH
         val sortedHands = hands.sortedWith(compareBy<Hand> { it.timestamp }.thenBy { it.id })
         var heroStack = startingStack
@@ -52,10 +52,10 @@ class Spin(
         endTimestamp = sortedHands.last().timestamp
 
         //valid if all hands are contiguous + hero wins/lose/made a deal
-        valid = heroStack == 0 || heroStack == 3 * startingStack || (wins > 0 && wins < 0.7 * multiplier * buyIn)
+        valid = heroStack == 0 || heroStack == 3 * startingStack || (winCents > 0 && winCents < 0.7 * multiplier * buyInCents)
 
         profile = SpinProfile(
-            buyIn = buyIn,
+            buyInCents = buyInCents,
             initialStack = startingStack,
             scheme = schemeProvider(this)
         )
@@ -63,7 +63,7 @@ class Spin(
 }
 
 data class SpinProfile(
-    val buyIn: Double,
+    val buyInCents: Int,
     val initialStack: Int,
     val scheme: PayoutScheme,
 )

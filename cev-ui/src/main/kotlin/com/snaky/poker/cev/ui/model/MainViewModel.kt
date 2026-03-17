@@ -1,18 +1,17 @@
 package com.snaky.poker.cev.ui.model
 
 import androidx.compose.runtime.*
-import com.snaky.poker.cev.core.model.Hand.Position
-import com.snaky.poker.cev.core.model.Spin
-import com.snaky.poker.cev.core.model.SpinProfile
 import com.snaky.poker.cev.core.PlayerStat
 import com.snaky.poker.cev.core.SimulationResult
 import com.snaky.poker.cev.core.VarianceSimulator
+import com.snaky.poker.cev.core.model.Hand.Position
+import com.snaky.poker.cev.core.model.Spin
+import com.snaky.poker.cev.core.model.SpinProfile
 import com.snaky.poker.cev.ui.config.ConfigurationManager
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.*
 import kotlin.math.max
-import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -101,19 +100,19 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
             }
         )
         // then prepare 1 simulation task per buy in
-        val simuPerBuyIn = mutableMapOf<Double, MutableMap<SpinProfile, PlayerStat>>()
+        val simuPerBuyIn = mutableMapOf<Int, MutableMap<SpinProfile, PlayerStat>>()
         accumulators.forEach { (profile, acc) ->
-            simuPerBuyIn.getOrPut(profile.buyIn) { mutableMapOf() }[profile] = acc.toPlayerStat()
+            simuPerBuyIn.getOrPut(profile.buyInCents) { mutableMapOf() }[profile] = acc.toPlayerStat()
         }
 
         varianceJob = scope.launch {
-            simuPerBuyIn.forEach { (buyIn, profilePairs) ->
-                val label = formatBuyIn(buyIn)
+            simuPerBuyIn.forEach { (buyInCents, profilePairs) ->
+                val label = formatBuyIn(buyInCents)
                 launch {
                     withTimeout(10.seconds) {
                         VarianceSimulator.run(
                             distribution = profilePairs,
-                            buyIn = buyIn,
+                            buyInCents = buyInCents,
                             onResult = { varianceResults[label] = it}
                         )
                     }
@@ -139,14 +138,14 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
         spins: List<Spin>,
         showCev: Boolean
     ): List<SpinStats> {
-        val grouped = spins.groupBy { it.buyIn }.toSortedMap()
+        val grouped = spins.groupBy { it.buyInCents }.toSortedMap()
         val rows = grouped.map { (bi, list) -> createStatsObject(formatBuyIn(bi), list, showCev) }
         val totalRow = createStatsObject("Total", spins, showCev)
         return rows + totalRow
     }
 
-    private fun formatBuyIn(buyIn: Double): String {
-        return if (buyIn % 1.0 == 0.0) "${buyIn.toInt()} €" else "%.2f €".format(buyIn)
+    private fun formatBuyIn(buyInCents: Int): String {
+        return if (buyInCents % 100 == 0) "${buyInCents / 100} €" else "%.2f €".format(buyInCents / 100.0)
     }
 
 
@@ -154,7 +153,7 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
 
         val posEntries = Position.entries
         var netGainCents = 0
-        var prizePoolCents = 0.0
+        var prizePoolCents : Int? = 0
         val count = spins.size
         var ev = 0.0
         var sqrEv = 0.0
@@ -163,11 +162,11 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
         val positionalEv = DoubleArray(posEntries.size) { 0.0 }
 
         for (spin in spins) {
-            val buyIn = (100 * spin.buyIn).roundToInt()
-            totalBuyInCents += buyIn
-            prizePoolCents += buyIn * (spin.multiplier.toDouble().takeUnless { it == 0.0 } ?: Double.NaN)
-            if (spin.wins > 0) itmCount++
-            netGainCents += (100 * spin.wins).roundToInt() - buyIn
+            val bi = spin.buyInCents
+            totalBuyInCents += bi
+            prizePoolCents = spin.multiplier.let { if (it == 0) null else prizePoolCents?.plus(it * bi) }
+            if (spin.winCents > 0) itmCount++
+            netGainCents += spin.winCents - bi
             ev += spin.cev
             sqrEv += spin.cev * spin.cev
             spin.hands.forEach { positionalEv[it.position.ordinal] += it.cev }
@@ -181,7 +180,7 @@ class MainViewModel(private val api: PokerCalculatorAPI) {
             netGain = netGainCents / 100.0,
             itm = itmCount.toDouble() / count,
             roi = netGainCents.toDouble() / totalBuyInCents,
-            effectiveRake = 1 - prizePoolCents / 3.0 / totalBuyInCents,
+            effectiveRake = if(prizePoolCents != null) 1 - prizePoolCents / 3.0 / totalBuyInCents else Double.NaN,
             cev = if (!showCev) Double.NaN else cev,
             cevStdDev = if (!showCev) Double.NaN else sqrt(max(0.0, (sqrEv / count) - (cev * cev))),
             positionalCev = if (!showCev) emptyMap() else posEntries.associateWithTo(EnumMap(Position::class.java)) { positionalEv[it.ordinal] / count }

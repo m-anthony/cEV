@@ -113,7 +113,7 @@ class WinamaxParser : AbstractRoomParser() {
                     INIT
                 } else if(line.contains("summary")) {
                     parser.registerSpin(line.substringAfter('(').substringBefore(')'))
-                    if(parser.spin.wins > 0) SKIPPED else TOURNAMENT_SUMMARY
+                    if(parser.spin.winCents > 0) SKIPPED else TOURNAMENT_SUMMARY
                 } else {
                     TABLE
                 }
@@ -123,15 +123,15 @@ class WinamaxParser : AbstractRoomParser() {
             override fun parseLine(line: String, parser: WinamaxParser): ParserState {
                 if(line.isBlank() or line.startsWith("Winamax Poker")) return INIT.parseLine(line, parser)
 
-                if (line.startsWith("Buy-In :") && parser.spin.buyIn == 0.0) {
-                    val rake = line.substringAfter("+ ").substringBefore('€')
-                    val net = line.substringAfter(": ").substringBefore('€')
-                    parser.spin.buyIn = (100 * rake.toDouble() + 100 * net.toDouble()).roundToInt() / 100.0
+                if (line.startsWith("Buy-In :") && parser.spin.buyInCents == 0) {
+                    val rake = line.substringAfter("+ ").substringBefore('€').toDouble()
+                    val net = line.substringAfter(": ").substringBefore('€').toDouble()
+                    parser.spin.buyInCents = (100 * (net + rake)).roundToInt()
                 } else if(line.startsWith("Prizepool :")) {
                     val prizepool = line.substringAfter(": ").substringBefore('€')
-                    parser.spin.multiplier = (prizepool.toDouble() / parser.spin.buyIn).roundToInt()
+                    parser.spin.multiplier = (prizepool.toDouble() * 100 / parser.spin.buyInCents).roundToInt()
                 } else if(line.startsWith("You won")) {
-                    parser.spin.wins += line.substringAfter("won ").substringBefore('€').toFloat()
+                    parser.spin.winCents += (line.substringAfter("won ").substringBefore('€').toDouble() * 100).roundToInt()
                 }
                 return TOURNAMENT_SUMMARY
             }
@@ -140,10 +140,10 @@ class WinamaxParser : AbstractRoomParser() {
             override fun parseLine(line: String, parser: WinamaxParser): ParserState {
                 parser.registerSpin(line.substringAfter('(').substringBefore(')'))
                 val first = parser.firstLine
-                if (parser.spin.buyIn == 0.0) parser.spin.apply {
-                    val net = first.substringAfter("buyIn: ").substringBefore('€')
-                    val rake = first.substringAfter("+ ").substringBefore('€')
-                    buyIn = (100 * rake.toDouble() + 100 * net.toDouble()).roundToInt() / 100.0
+                if (parser.spin.buyInCents == 0) parser.spin.apply {
+                    val net = first.substringAfter("buyIn: ").substringBefore('€').toDouble()
+                    val rake = first.substringAfter("+ ").substringBefore('€').toDouble()
+                    buyInCents = (100 * (net + rake)).roundToInt()
                     startingStack = if(line.contains("nitro", ignoreCase = true)) 300 else 500
                 }
 
@@ -223,14 +223,14 @@ class WinamaxParser : AbstractRoomParser() {
 
 private object WinamaxPayouts: (Spin) -> PayoutScheme {
 
-    override fun invoke(spin: Spin): PayoutScheme = when(spin.buyIn) {
-        0.25, 0.50 -> NANO
-        1.0, 10.0 -> SPIN1_10
-        2.0 -> SPIN2
-        5.0 -> SPIN5
-        25.0 -> SPIN25
-        50.0 -> SPIN50
-        100.0 -> SPIN100
+    override fun invoke(spin: Spin): PayoutScheme = when(spin.buyInCents) {
+        25, 50 -> NANO
+        100, 1000 -> SPIN1_10
+        200 -> SPIN2
+        500 -> SPIN5
+        2500 -> SPIN25
+        5000 -> SPIN50
+        10000 -> SPIN100
         else -> HIGH
     }
 

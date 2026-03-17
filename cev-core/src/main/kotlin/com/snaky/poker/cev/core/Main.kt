@@ -35,7 +35,7 @@ fun main() {
     println("Processing done in ${processingTime.duration}.")
 
     val spins = parser.spins.values
-    val spinsByBuyIn = spins.groupBy { it.buyIn }
+    val spinsByBuyIn = spins.groupBy { it.buyInCents }
     val statsByBuyIn = spinsByBuyIn.mapValues { (_, l) -> Stats.fromSpins(l) }
     displayStats(statsByBuyIn, "Buy-in", Stats.fromSpins(spins))
 
@@ -50,7 +50,7 @@ private fun <K : Comparable<K>> displayStats(stats: Map<K, Stats>, @Suppress("Sa
     fun statsToStringList(key : String, stat : Stats) : List<String> {
         val line = mutableListOf(key)
         line.add(stat.count.toString())
-        line.add("%.2f".format(stat.winnings))
+        line.add("%.2f".format(stat.winningCents / 100.0))
         line.add(stat.cev.toString())
         line.add("%.1f".format(stat.itm))
         line.add("%.2f".format(stat.roi))
@@ -79,7 +79,7 @@ private fun <K : Comparable<K>> displayStats(stats: Map<K, Stats>, @Suppress("Sa
 
 private data class Stats(
     val count: Int,
-    val winnings: Double,
+    val winningCents: Int,
     val cev: Int,
     val roi: Double,
     val itm: Double,
@@ -91,20 +91,20 @@ private data class Stats(
 
     companion object {
         fun fromSpins(spins: Collection<Spin>): Stats {
-            var wins = 0.0
+            var winCents = 0
             var cev = 0.0
             var itm = 0
-            var buyIns = 0.0
-            var prizePool = 0.0
+            var buyInCents = 0
+            var prizePoolCents = 0
             var sqrCev = 0.0
             val positionalCev: MutableMap<Hand.Position, Double> = EnumMap(Hand.Position::class.java)
             Hand.Position.entries.forEach { positionalCev[it] = 0.0 }
 
             for (spin in spins) {
-                wins += ((spin.wins / spin.buyIn).roundToInt() - 1) * spin.buyIn
-                if (spin.wins > 0) itm++
-                buyIns += spin.buyIn
-                prizePool += spin.buyIn * spin.multiplier
+                winCents += spin.winCents - spin.buyInCents
+                if (spin.winCents > 0) itm++
+                buyInCents += spin.buyInCents
+                prizePoolCents += spin.buyInCents * spin.multiplier
                 cev += spin.cev
                 sqrCev += spin.cev * spin.cev
                 spin.hands.forEach { positionalCev.computeIfPresent(it.position) { _, v -> v + it.cev } }
@@ -114,12 +114,12 @@ private data class Stats(
             val floatCev = (cev / spins.size).toFloat()
             return Stats(
                 count = spins.size,
-                winnings = wins,
-                roi = 100.0 * wins / buyIns,
+                winningCents = winCents,
+                roi = 100.0 * winCents / buyInCents,
                 itm = 100.0 * itm  / spins.size,
                 cev = (cev / spins.size).roundToInt(),
                 positionalCev = positionalCev,
-                effRake = (1 - prizePool / 3 / buyIns) * 100,
+                effRake = (1 - prizePoolCents / 3.0 / buyInCents) * 100,
                 cevStdDev = sqrt(max(0.0, (sqrCev / spins.size) - (floatCev * floatCev))).roundToInt()
             )
         }
