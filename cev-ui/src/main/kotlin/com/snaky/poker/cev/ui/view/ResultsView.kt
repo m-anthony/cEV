@@ -74,7 +74,7 @@ fun ResultsView(viewModel: ResultsViewModel, onBusyState: (Boolean) -> Unit) {
                     selectedStack = viewModel.selectedStackFilter,
                     onStackSelected = { viewModel.selectedStackFilter = it },
                     modifier = Modifier.fillMaxWidth()
-                        .background(DefaultTheme.Colors.TableBackground, DefaultTheme.Shapes.Medium)
+                        .background(DefaultTheme.Colors.WindowBackground, DefaultTheme.Shapes.Medium)
                         .clip(DefaultTheme.Shapes.Medium)
                 )
             }
