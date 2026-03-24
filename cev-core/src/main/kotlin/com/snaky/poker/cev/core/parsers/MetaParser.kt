@@ -15,7 +15,7 @@ class MetaParser : AutoCloseable {
         acc, parser -> acc.also { it.putAll(parser.spins) }
     }
 
-    private val parsers = listOf(BetclicParser(), IpokerParser(), WinamaxParser())
+    private val parsers = listOf(BetclicParser(), IpokerParser(), WinamaxParser(), UnibetParser())
 
     suspend fun parseFile(inputStream: InputStream){
         currentCoroutineContext().ensureActive()

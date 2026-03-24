@@ -4,4 +4,5 @@ enum class Room {
     WINAMAX,
     BETCLIC,
     IPOKER,
+    UNIBET,
 }

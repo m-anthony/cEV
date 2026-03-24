@@ -4,6 +4,7 @@ import com.snaky.poker.cev.core.model.PayoutScheme
 import com.snaky.poker.cev.core.model.Room
 import com.snaky.poker.cev.core.parsers.BetclicParser
 import com.snaky.poker.cev.core.parsers.IpokerParser
+import com.snaky.poker.cev.core.parsers.UnibetParser
 import com.snaky.poker.cev.core.parsers.WinamaxParser
 
 object PayoutSchemeProvider {
@@ -26,6 +27,7 @@ object PayoutSchemeProvider {
         registerRoomSchemes(Room.BETCLIC, BetclicParser().getAllPayoutScheme)
         registerRoomSchemes(Room.WINAMAX, WinamaxParser().getAllPayoutScheme)
         registerRoomSchemes(Room.IPOKER, IpokerParser().getAllPayoutScheme)
+        registerRoomSchemes(Room.UNIBET, UnibetParser().getAllPayoutScheme)
     }
 }
 
