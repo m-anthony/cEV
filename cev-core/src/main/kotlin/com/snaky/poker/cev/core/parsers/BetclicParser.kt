@@ -29,7 +29,7 @@ class BetclicParser : AbstractRoomParser() {
 
     }
 
-    override fun validateHeader(header: String): Boolean = header.contains("Site: Betclic.fr")
+    override fun validateHeader(header: String, fileName: String): Boolean = header.contains("Site: Betclic.fr")
 
 
     private fun parseSeat(l: String) {

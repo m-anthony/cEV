@@ -17,13 +17,13 @@ class MetaParser : AutoCloseable {
 
     private val parsers = listOf(BetclicParser(), IpokerParser(), WinamaxParser(), UnibetParser())
 
-    suspend fun parseFile(inputStream: InputStream){
+    suspend fun parseFile(inputStream: InputStream, fileName: String){
         currentCoroutineContext().ensureActive()
         val bufferedStream = BufferedInputStream(inputStream).also { it.mark(2048) }
         val bytes = ByteArray(512)
         val header = String(bytes, 0, bufferedStream.read(bytes))
         bufferedStream.reset()
-        val parser = parsers.firstOrNull { it.validateHeader(header) }
+        val parser = parsers.firstOrNull { it.validateHeader(header, fileName) }
         parser?.parseFile(bufferedStream)
     }
 

@@ -27,7 +27,7 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
         xmlReader.parse(reader)
     }
 
-    override fun validateHeader(header: String): Boolean = header.contains("<session sessioncode=")
+    override fun validateHeader(header: String, fileName: String): Boolean = header.contains("<session sessioncode=")
 
     override fun onHeroName(name: String) = run { heroName = name}
 

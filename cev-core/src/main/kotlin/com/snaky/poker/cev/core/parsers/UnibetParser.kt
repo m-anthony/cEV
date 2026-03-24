@@ -29,7 +29,7 @@ class UnibetParser : AbstractRoomParser() {
 
     }
 
-    override fun validateHeader(header: String): Boolean = header.startsWith("Unibet Hand #")
+    override fun validateHeader(header: String, fileName: String): Boolean = header.startsWith("Unibet Hand #") && fileName.contains("Spin", ignoreCase = true)
 
     private fun parseSeat(l: String){
         val playerName = l.substringAfter(": ").substringBefore('[').substringBefore(" (")
@@ -61,6 +61,7 @@ class UnibetParser : AbstractRoomParser() {
     private fun parseCards(l: String){
         val cardsString = l.substringAfterLast('[', "").also { if(it.isEmpty()) return }
         val player = hand.findPlayer(l.substringAfter("Dealt to ").substringBefore(' ').substringBefore('['))
+        if(player == hand.hero && spin.hands.size == 1) spin.startingStack = player.stack
         player.cards = CardSet.parse(cardsString)
     }
 

@@ -21,7 +21,7 @@ class WinamaxParser : AbstractRoomParser() {
     override val payoutProvider: (Spin) -> PayoutScheme = WinamaxPayouts
     override val getAllPayoutScheme = WinamaxPayouts.ALL
 
-    override fun validateHeader(header: String): Boolean {
+    override fun validateHeader(header: String, fileName: String): Boolean {
         return header.startsWith("Winamax Poker - Tournament \"Expresso") ||
                 header.startsWith("Winamax Poker - Tournament summary : Expresso")
     }

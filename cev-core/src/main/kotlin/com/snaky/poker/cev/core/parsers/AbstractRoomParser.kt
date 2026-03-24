@@ -141,6 +141,6 @@ abstract class AbstractRoomParser: AutoCloseable {
         }
     }
 
-    abstract fun validateHeader(header: String): Boolean
+    abstract fun validateHeader(header: String, fileName: String): Boolean
 
 }

@@ -14,7 +14,7 @@ suspend fun processFileOrDirectory(file: File, parser: MetaParser) {
     when {
         file.isDirectory -> file.listFiles()?.forEach { processFileOrDirectory(it, parser) }
         file.isFile && file.extension.equals("zip", ignoreCase = true) -> processZipFile(file, parser)
-        file.isFile -> file.inputStream().use { parser.parseFile(it) }
+        file.isFile -> file.inputStream().use { parser.parseFile(it, file.name) }
     }
 }
 
@@ -33,7 +33,7 @@ private suspend fun processZipStream(inputStream: InputStream, parser: MetaParse
                 if (entryName.endsWith(".zip", ignoreCase = true)) {
                     processZipStream(zipStream, parser)
                 } else {
-                    parser.parseFile(zipStream)
+                    parser.parseFile(zipStream, entryName)
                 }
             }
     }
