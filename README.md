@@ -15,7 +15,7 @@ The main goal is to provide a **simple, one-click solution** for players who wan
 * **Betclic**: ✅ Stable.
 * **Winamax**: ✅ Stable (Supports both Nitro and Classic formats).
 * **iPoker Network**: ✅ Stable (iPoker.fr, etc.).
-* **Unibet**: ⏳ Pending their new Hand History format.
+* **Unibet**: Added recently, should work but not thoroughly tested yet
 
 > **Don't see your room?**
 > If you would like to have another room supported, feel free to **submit a Pull Request** or **open an issue** with the specific Hand History (HH) format specifications.
@@ -108,7 +108,8 @@ L'objectif principal est de fournir une **solution simple en un clic** pour les 
 * **Betclic** : ✅ Stable.
 * **Winamax** : ✅ Stable (Supporte les formats Nitro et Classique).
 * **iPoker Network** : ✅ Stable (iPoker.fr, etc.).
-* **Unibet** : ⏳ En attente de leur nouveau format de Hand History.
+* **Unibet**: Ajouté récemment, cela devrait fonctionner, mais pas encore testé en détail
+
 
 > **Votre room n'est pas listée ?**
 > Si vous souhaitez qu'une autre room soit supportée, n'hésitez pas à **soumettre une Pull Request** ou à **ouvrir une issue** avec les spécifications du format de Hand History (HH).
