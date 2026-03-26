@@ -1,10 +1,9 @@
 package com.snaky.poker.cev.core.parsers
 
 import com.snaky.poker.cev.core.BetTracker
-import com.snaky.poker.cev.core.model.MultiplierTier
-import com.snaky.poker.cev.core.model.PayoutScheme
 import com.snaky.poker.cev.core.model.*
 import java.io.BufferedReader
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -224,18 +223,178 @@ class WinamaxParser : AbstractRoomParser() {
 
 private object WinamaxPayouts: (Spin) -> PayoutScheme {
 
-    override fun invoke(spin: Spin): PayoutScheme = when(spin.buyInCents) {
-        25, 50 -> NANO
-        100, 1000 -> SPIN1_10
-        200 -> SPIN2
-        500 -> SPIN5
-        2500 -> SPIN25
-        5000 -> SPIN50
-        10000 -> SPIN100
-        else -> HIGH
+    private val repartitionChangeTimestamp = LocalDate.of(2026, 3, 25).atStartOfDay().toEpochSecond(ZoneOffset.UTC)
+
+    override fun invoke(spin: Spin): PayoutScheme {
+        val repart2025 = spin.startTimestamp < repartitionChangeTimestamp
+        return when(spin.buyInCents) {
+            25, 50 -> if(repart2025) NANO_2025 else NANO
+            100 -> if(repart2025) SPIN1_10_2025 else SPIN1
+            200 -> if(repart2025) SPIN2_2025 else  SPIN2
+            500 -> if(repart2025) SPIN5_2025 else SPIN5
+            1000 -> if(repart2025) SPIN1_10_2025 else SPIN10
+            2500 -> if(repart2025) SPIN25_2025 else SPIN25
+            5000 -> if(repart2025) SPIN50_2025 else SPIN50
+            10000 -> if(repart2025) SPIN100_2025 else SPIN100
+            else -> if(repart2025) HIGH_2025 else HIGH
+        }
     }
 
     val NANO = PayoutScheme(
+        name = "0.25/0.50 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(25, 50),
+        tiers = listOf(
+            MultiplierTier(2, 5_363_694),
+            MultiplierTier(3, 3_324_204),
+            MultiplierTier(4, 800_000),
+            MultiplierTier(5, 400_000),
+            MultiplierTier(10, 100_000),
+            MultiplierTier(20, 10_000), //50
+            MultiplierTier(listOf(80, 12, 8), 2000), //100
+            MultiplierTier(listOf(800, 120, 80), 100), //1000
+            MultiplierTier(listOf(8000, 1200, 800), 20), //10K
+        )
+    )
+
+    val SPIN1 = PayoutScheme(
+        name = "1 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(1_00),
+        tiers = listOf(
+            MultiplierTier(2, 5_313_688),
+            MultiplierTier(3, 3_324_208),
+            MultiplierTier(4, 850_000),
+            MultiplierTier(5, 400_000),
+            MultiplierTier(10, 100_000),
+            MultiplierTier(20, 10_000),
+            MultiplierTier(listOf(80, 12, 8), 2_000), //100
+            MultiplierTier(listOf(800, 120, 80), 100), //1000
+            MultiplierTier(listOf(80_000, 12_000, 8_000), 4), //100K
+        )
+    )
+
+    val SPIN2 = PayoutScheme(
+        name = "2 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(2_00),
+        tiers = listOf(
+            MultiplierTier(2, 5_363_697),
+            MultiplierTier(3, 3_324_202),
+            MultiplierTier(4, 800_000),
+            MultiplierTier(5, 400_000),
+            MultiplierTier(10, 100_000),
+            MultiplierTier(20, 10_000),
+            MultiplierTier(listOf(80, 12, 8), 2_000), //100
+            MultiplierTier(listOf(800, 120, 80), 100), //1000
+            MultiplierTier(listOf(400_000, 60_000, 40_000), 1), //500K
+        )
+    )
+
+
+    val SPIN5 = PayoutScheme(
+        name = "5 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(5_00),
+        tiers = listOf(
+            MultiplierTier(2, 5_248_697),
+            MultiplierTier(3, 3_334_202),
+            MultiplierTier(4, 900_000),
+            MultiplierTier(5, 400_000),
+            MultiplierTier(10, 100_000),
+            MultiplierTier(20, 15_000), //50
+            MultiplierTier(listOf(80, 12, 8), 2_000), //100
+            MultiplierTier(listOf(800, 120, 80), 100), //1000
+            MultiplierTier(listOf(160_000, 24_000, 16_000), 1), //200K
+        )
+    )
+
+    val SPIN10 = PayoutScheme(
+        name = "10 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(10_00),
+        tiers = listOf(
+            MultiplierTier(2,  5_248_694),
+            MultiplierTier(3, 3_334_204),
+            MultiplierTier(4, 900_000),
+            MultiplierTier(5, 400_000),
+            MultiplierTier(10, 100_000),
+            MultiplierTier(20, 15_000),
+            MultiplierTier(listOf(80, 12, 8), 2_000), //100
+            MultiplierTier(listOf(800, 120, 80), 100), //1000
+            MultiplierTier(listOf(80_000, 12_000, 8_000), 2), //100K
+        )
+    )
+
+    val SPIN25 = PayoutScheme(
+        name = "25 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(25_00),
+        tiers = listOf(
+            MultiplierTier(2, 5_248_685),
+            MultiplierTier(3, 3_334_210),
+            MultiplierTier(4, 900_000),
+            MultiplierTier(5, 400_000),
+            MultiplierTier(10, 100_000),
+            MultiplierTier(20, 15_000),
+            MultiplierTier(listOf(80, 12, 8), 2_000), //100
+            MultiplierTier(listOf(800, 120, 80), 100), //1000
+            MultiplierTier(listOf(32_000, 4_800, 3_200), 5), //40K
+        )
+    )
+
+    val SPIN50 = PayoutScheme(
+        name = "50 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(50_00),
+        tiers = listOf(
+            MultiplierTier(2, 5_248_670),
+            MultiplierTier(3, 3_334_220),
+            MultiplierTier(4, 900_000),
+            MultiplierTier(5, 400_000),
+            MultiplierTier(10, 100_000),
+            MultiplierTier(20, 15_000), //50
+            MultiplierTier(listOf(80, 12, 8), 2_000), //100
+            MultiplierTier(listOf(800, 120, 80), 100), //1000
+            MultiplierTier(listOf(16_000, 2400, 1600), 10), //20K
+        )
+    )
+
+    val SPIN100 = PayoutScheme(
+        name = "100 EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(100_00),
+        tiers = listOf(
+            MultiplierTier(2, 524_864),
+            MultiplierTier(3, 333_424),
+            MultiplierTier(4, 90_000),
+            MultiplierTier(5, 40_000),
+            MultiplierTier(10, 10_000),
+            MultiplierTier(20, 1500), //50
+            MultiplierTier(listOf(80, 12, 8), 200), //100
+            MultiplierTier(listOf(800, 120, 80), 10), //1000
+            MultiplierTier(listOf(8000, 1200, 800), 2), //10K
+        )
+    )
+
+    val HIGH = PayoutScheme(
+        name = "250+ EUR",
+        room = Room.WINAMAX,
+        availableBuyInCents = listOf(250_00, 500_00),
+        tiers = listOf(
+            MultiplierTier(2, 520_813),
+            MultiplierTier(3, 337_458),
+            MultiplierTier(4, 90_000),
+            MultiplierTier(5, 40_000),
+            MultiplierTier(10, 10_000),
+            MultiplierTier(20, 1500),
+            MultiplierTier(listOf(80, 12, 8), 200), //100
+            MultiplierTier(listOf(320, 48, 32), 25), //400
+            MultiplierTier(listOf(3200, 480, 320), 4), //4K
+        )
+    )
+
+    val NANO_2025 = PayoutScheme(
         name = "0.25/0.50 EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(25, 50),
@@ -252,7 +411,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val SPIN1_10 = PayoutScheme(
+    val SPIN1_10_2025 = PayoutScheme(
         name = "1/10 EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(1_00, 10_00),
@@ -269,7 +428,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val SPIN2 = PayoutScheme(
+    val SPIN2_2025 = PayoutScheme(
         name = "2 EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(2_00),
@@ -286,7 +445,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val SPIN5 = PayoutScheme(
+    val SPIN5_2025 = PayoutScheme(
         name = "5 EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(5_00),
@@ -303,7 +462,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val SPIN25 = PayoutScheme(
+    val SPIN25_2025 = PayoutScheme(
         name = "25 EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(25_00),
@@ -320,7 +479,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val SPIN50 = PayoutScheme(
+    val SPIN50_2025 = PayoutScheme(
         name = "50 EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(50_00),
@@ -337,7 +496,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val SPIN100 = PayoutScheme(
+    val SPIN100_2025 = PayoutScheme(
         name = "100 EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(100_00),
@@ -354,7 +513,7 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val HIGH = PayoutScheme(
+    val HIGH_2025 = PayoutScheme(
         name = "250+ EUR",
         room = Room.WINAMAX,
         availableBuyInCents = listOf(250_00, 500_00),
@@ -371,5 +530,5 @@ private object WinamaxPayouts: (Spin) -> PayoutScheme {
         )
     )
 
-    val ALL = listOf(NANO, SPIN1_10, SPIN2, SPIN5, SPIN25, SPIN100, HIGH)
+    val ALL = listOf(NANO, SPIN1, SPIN2, SPIN5, SPIN10, SPIN25, SPIN50, SPIN100, HIGH)
 }
