@@ -113,6 +113,7 @@ class WinamaxParser : AbstractRoomParser() {
                     INIT
                 } else if(line.contains("summary")) {
                     parser.registerSpin(line.substringAfter('(').substringBefore(')'))
+                    parser.spin.startingStack = if(line.contains("nitro", ignoreCase = true)) 300 else 500
                     if(parser.spin.winCents > 0) SKIPPED else TOURNAMENT_SUMMARY
                 } else {
                     TABLE
