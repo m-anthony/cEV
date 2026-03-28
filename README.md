@@ -15,7 +15,7 @@ The main goal is to provide a **simple, one-click solution** for players who wan
 * **Betclic**: ✅ Stable.
 * **Winamax**: ✅ Stable (Supports both Nitro and Classic formats).
 * **iPoker Network**: ✅ Stable (iPoker.fr, etc.).
-* **Unibet**: Added recently, should work but not thoroughly tested yet
+* **Unibet**: 🧪 Beta (Recently added. Functional, but feedback is welcome for edge cases).
 
 > **Don't see your room?**
 > If you would like to have another room supported, feel free to **submit a Pull Request** or **open an issue** with the specific Hand History (HH) format specifications.
@@ -34,10 +34,12 @@ Download the version corresponding to your system from the [Releases](https://gi
 * **Disk Image (.dmg)**: Recommended. Open the image and drag the app to your Applications folder.
 * **Portable Version (.zip)**: Unzip and run the application directly.
 
-> **Note:** The application includes its own runtime environment. You do not need to install Java or any other software to run it.
-
+| Architecture | Processor Type | Recommended File |
+| :--- | :--- | :--- |
+| **Apple Silicon** | M1, M2, M3, M4 | `Spin-cEV-Installer-macOS-Apple-Silicon-vX.X.dmg` |
+| **Intel** | Older Macs (Pre-2020) | `Spin-cEV-Installer-macOS-Intel-vX.X.dmg` |
+> **Which one to choose?** If you see an "App not supported" error, you likely downloaded the Apple Silicon version for an Intel Mac. Try the Intel version instead.
 ---
-
 ### 🛡️ Security and Trust
 
 #### A Note on Skepticism
@@ -108,7 +110,7 @@ L'objectif principal est de fournir une **solution simple en un clic** pour les 
 * **Betclic** : ✅ Stable.
 * **Winamax** : ✅ Stable (Supporte les formats Nitro et Classique).
 * **iPoker Network** : ✅ Stable (iPoker.fr, etc.).
-* **Unibet**: Ajouté récemment, cela devrait fonctionner, mais pas encore testé en détail
+* **Unibet** : 🧪 Beta (Ajout récent. Fonctionnel, mais vos retours sont les bienvenus pour les cas particuliers).
 
 
 > **Votre room n'est pas listée ?**
@@ -128,8 +130,12 @@ Téléchargez la version correspondant à votre système sur la page des [Releas
 * **Image Disque (.dmg)** : Recommandé. Ouvrez l'image et faites glisser l'application dans votre dossier Applications.
 * **Version Portable (.zip)** : Décompressez et lancez l'application directement.
 
-> **Note :** L'application inclut son propre environnement d'exécution. Vous n'avez pas besoin d'installer Java ou tout autre logiciel pour la lancer.
+| Architecture | Type de Processeur | Fichier Recommandé |
+| :--- | :--- | :--- |
+| **Apple Silicon** | M1, M2, M3, M4 | `Spin-cEV-Installer-macOS-Apple-Silicon-vX.X.dmg` |
+| **Intel** | Anciens Macs (Avant 2020) | `Spin-cEV-Installer-macOS-Intel-vX.X.dmg` |
 
+> **Lequel choisir ?** Si vous voyez une erreur "Application non prise en charge", vous avez probablement téléchargé la version Apple Silicon pour un Mac Intel. Essayez la version Intel à la place.
 ---
 
 ### 🛡️ Sécurité et Confiance
