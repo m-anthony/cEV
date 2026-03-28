@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     name: Build on ${{ matrix.os }}
@@ -16,7 +19,16 @@ jobs:
       attestations: write
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            arch: x64
+            display_os: "Windows"
+          - os: macos-latest
+            arch: x64
+            display_os: "macOS-Intel"
+          - os: macos-latest
+            arch: arm64
+            display_os: "macOS-Apple-Silicon"
 
     steps:
       - name: Checkout code
@@ -45,6 +57,7 @@ jobs:
         with:
           java-version: ${{ steps.java-version.outputs.JAVA_VERSION }}
           distribution: 'temurin'
+          architecture: ${{ matrix.arch }}
           cache: 'gradle'
 
       - name: Cache Preflop Equity File
@@ -58,24 +71,15 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Distributions
+        run: ./gradlew packageDistributionForCurrentOS -Pcompose.desktop.target=mac-${{ matrix.arch }}
+        if: runner.os == 'macOS'
+
+      - name: Build Distributions (Windows)
         run: ./gradlew packageDistributionForCurrentOS
+        if: runner.os == 'Windows'
 
       - name: Build Portable Zip
         run: ./gradlew :cev-ui:createDistributable
-
-      - name: Create Portable Archive (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ver = "${{ steps.app-version.outputs.VERSION }}"
-          Compress-Archive -Path cev-ui/build/compose/binaries/main/app/* -DestinationPath "cev-ui/build/compose/binaries/main/Spin-cEV-Portable-Win-$ver.zip"
-
-      - name: Create Portable Archive (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          ver="${{ steps.app-version.outputs.VERSION }}"
-          cd cev-ui/build/compose/binaries/main/app
-          zip -r ../Spin-cEV-Portable-Mac-$ver.zip .
 
       - name: Generate Artifact Attestation
         uses: actions/attest-build-provenance@v1
@@ -86,10 +90,42 @@ jobs:
             ${{ runner.os == 'macOS' && 'cev-ui/build/compose/binaries/main/dmg/*.dmg' || '' }}
             cev-ui/build/compose/binaries/main/*.zip
 
+      - name: Prepare Final Binaries (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.app-version.outputs.VERSION }}"
+          $osName = "${{ matrix.display_os }}"
+          
+          # 1. Renommage du MSI
+          Get-ChildItem "cev-ui/build/compose/binaries/main/msi/*.msi" | ForEach-Object {
+              Rename-Item $_.FullName -NewName "Spin-cEV-Installer-$osName-$ver.msi"
+          }
+          
+          # 2. Création du ZIP Portable
+          Compress-Archive -Path "cev-ui/build/compose/binaries/main/app/*" -DestinationPath "cev-ui/build/compose/binaries/main/Spin-cEV-Portable-$osName-$ver.zip"
+
+      - name: Prepare Final Binaries (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          VERSION="${{ steps.app-version.outputs.VERSION }}"
+          OS_NAME="${{ matrix.display_os }}"
+          
+          # 1. Renommage du DMG
+          cd cev-ui/build/compose/binaries/main/dmg
+          for f in *.dmg; do
+            mv "$f" "Spin-cEV-Installer-$OS_NAME-$VERSION.dmg"
+          done
+          
+          # 2. Création du ZIP Portable
+          cd ../app
+          zip -r "../Spin-cEV-Portable-$OS_NAME-$VERSION.zip" .
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-binaries
+          name: ${{ matrix.os }}-${{ matrix.arch }}-binaries
           path: |
             cev-ui/build/compose/binaries/main/msi/*.msi
             cev-ui/build/compose/binaries/main/dmg/*.dmg
