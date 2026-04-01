@@ -21,7 +21,9 @@ class MetaParser : AutoCloseable {
         currentCoroutineContext().ensureActive()
         val bufferedStream = BufferedInputStream(inputStream).also { it.mark(2048) }
         val bytes = ByteArray(512)
-        val header = String(bytes, 0, bufferedStream.read(bytes))
+        val length = bufferedStream.read(bytes)
+        if (length == -1) return
+        val header = String(bytes, 0, length)
         bufferedStream.reset()
         val parser = parsers.firstOrNull { it.validateHeader(header, fileName) }
         parser?.parseFile(bufferedStream)
