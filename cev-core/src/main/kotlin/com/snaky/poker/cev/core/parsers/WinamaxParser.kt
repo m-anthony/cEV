@@ -22,6 +22,8 @@ class WinamaxParser : AbstractRoomParser() {
 
     override fun validateHeader(header: String, fileName: String): Boolean {
         return !fileName.contains("_play_")
+                && fileName.endsWith(".txt")
+                && fileName.contains("Expresso", ignoreCase = true)
                 && (header.startsWith("Winamax Poker - Tournament \"Expresso")
                 || header.startsWith("Winamax Poker - Tournament summary : Expresso"))
     }
