@@ -15,7 +15,7 @@ suspend fun processFileOrDirectory(file: File, parser: MetaParser, isTopLevel: B
     }
     println("processing file $file")
     when {
-        file.isDirectory -> file.listFiles()?.forEach { processFileOrDirectory(it, parser) }
+        file.isDirectory -> file.listFiles()?.forEach { processFileOrDirectory(it, parser, false) }
         file.isFile && file.extension.equals("zip", ignoreCase = true) -> processZipFile(file, parser)
         file.isFile -> file.inputStream().use { parser.parseFile(it, file.name) }
     }
