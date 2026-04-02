@@ -18,6 +18,7 @@ class UnibetParser : AbstractRoomParser() {
 
 
     override fun parseFile(reader: BufferedReader) {
+        state = ParserState.INIT
         var line = reader.readLine()
         while (line != null) {
             state = state.parseLine(line, this)
@@ -25,7 +26,6 @@ class UnibetParser : AbstractRoomParser() {
         }
         //there is no delimiter for the last hand of the file, so EOF should trigger some actions
         if (state != ParserState.SKIPPED) handFinished()
-        state = ParserState.INIT
 
     }
 

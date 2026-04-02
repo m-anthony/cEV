@@ -29,13 +29,13 @@ class WinamaxParser : AbstractRoomParser() {
     }
 
     override fun parseFile(reader: BufferedReader) {
+        state = ParserState.INIT
         var line = reader.readLine()
         while (line != null) {
             state = state.parseLine(line, this)
             line = reader.readLine()
         }
         if(state != ParserState.SKIPPED && state != ParserState.INIT) handFinished()
-        state = ParserState.INIT
     }
 
     private fun parseHoleCards(line: String){
