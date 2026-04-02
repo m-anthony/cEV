@@ -7,9 +7,12 @@ import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
-suspend fun processFileOrDirectory(file: File, parser: MetaParser) {
+suspend fun processFileOrDirectory(file: File, parser: MetaParser, isTopLevel: Boolean = true) {
 
-    if (!file.exists()) throw FileNotFoundException("File '$file' does not exists")
+    if (!file.exists()) {
+        if(isTopLevel) throw FileNotFoundException("File '$file' does not exists")
+        return
+    }
     println("processing file $file")
     when {
         file.isDirectory -> file.listFiles()?.forEach { processFileOrDirectory(it, parser) }
