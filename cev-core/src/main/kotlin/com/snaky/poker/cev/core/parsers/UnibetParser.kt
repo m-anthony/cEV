@@ -49,7 +49,7 @@ class UnibetParser : AbstractRoomParser() {
         registerAction(Action(hand.findPlayer(name), ActionType.Blind, l.endsWith("all-in"), blind))
 
         if(!l.contains('[')) return
-        val sb = l.substringAfter(" blind").endsWith("small")
+        val sb = l.substringBefore(" blind").endsWith("small")
         val hu = hand.players.size == 2
         hand.position = if (sb) {
             if (hu) HUSB else SB
