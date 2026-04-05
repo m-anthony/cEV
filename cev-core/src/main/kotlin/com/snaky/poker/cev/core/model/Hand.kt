@@ -5,7 +5,6 @@ class Hand(
     val spin: Spin
 ) {
     var timestamp: Long = 0L
-    val chips get() = hero.let { it.remaining - it.stack }
     var cev = 0.0
     var blind = 0
     lateinit var position: Position

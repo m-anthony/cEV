@@ -4,6 +4,7 @@ class Spin(
     val id: String,
     val room: Room
 ) {
+    var detailedStackMultiplier = 1
     var startingStack = 500
     var buyInCents = 0
     var multiplier = 0
@@ -40,19 +41,20 @@ class Spin(
         valid = buyInCents > 0 && !hands.isEmpty()
         if(!valid) return //may happen on corrupted iPoker files or winamax summary without HH
         val sortedHands = hands.sortedWith(compareBy<Hand> { it.timestamp }.thenBy { it.id })
-        var heroStack = startingStack
-        valid = sortedHands[0].players.all { it.stack == startingStack }
+        var heroStack = startingStack * detailedStackMultiplier
+        valid = sortedHands[0].players.all { it.stack == heroStack }
         for(hand in sortedHands){
             if(!valid) return
             valid = hand.hero.stack == heroStack
-            heroStack += hand.chips
+            heroStack += hand.hero.let { it.remaining - it.stack }
+            hand.cev /= detailedStackMultiplier
             cev += hand.cev
         }
         startTimestamp = sortedHands[0].timestamp
         endTimestamp = sortedHands.last().timestamp
 
         //valid if all hands are contiguous + hero wins/lose/made a deal
-        valid = heroStack == 0 || heroStack == 3 * startingStack || (winCents > 0 && winCents < 0.7 * multiplier * buyInCents)
+        valid = heroStack == 0 || heroStack == 3 * startingStack * detailedStackMultiplier || (winCents > 0 && winCents < 0.7 * multiplier * buyInCents)
 
         profile = SpinProfile(
             buyInCents = buyInCents,

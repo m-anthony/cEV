@@ -33,7 +33,7 @@ class UnibetParser : AbstractRoomParser() {
 
     private fun parseSeat(l: String){
         val playerName = l.substringAfter(": ").substringBefore('[').substringBefore(" (")
-        val player = hand.addPlayer(playerName, l.substringAfter('(').substringBefore(')').toInt())
+        val player = hand.addPlayer(playerName, l.substringAfter('(').substringBefore(')').toStack())
         if(l.contains('[')) hand.hero = player
     }
 
@@ -45,7 +45,7 @@ class UnibetParser : AbstractRoomParser() {
 
         //posts
         val name = l.substringBefore(" posts").substringBefore('[')
-        val blind = l.substringAfter("blind ").substringBefore(",").toInt()
+        val blind = l.substringAfter("blind ").substringBefore(",").toStack()
         registerAction(Action(hand.findPlayer(name), ActionType.Blind, l.endsWith("all-in"), blind))
 
         if(!l.contains('[')) return
@@ -61,7 +61,7 @@ class UnibetParser : AbstractRoomParser() {
     private fun parseCards(l: String){
         val cardsString = l.substringAfterLast('[', "").also { if(it.isEmpty()) return }
         val player = hand.findPlayer(l.substringAfter("Dealt to ").substringBefore(' ').substringBefore('['))
-        if(player == hand.hero && spin.hands.size == 1) spin.startingStack = player.stack
+        if(player == hand.hero && spin.hands.size == 1) spin.startingStack = player.stack / spin.detailedStackMultiplier
         player.cards = CardSet.parse(cardsString)
     }
 
@@ -94,7 +94,7 @@ class UnibetParser : AbstractRoomParser() {
 
         val amount = when (actionType) {
             ActionType.Fold, ActionType.Check -> 0
-            else -> line.substringBefore(", and is all-in").substringAfterLast(' ').toInt()
+            else -> line.substringBefore(", and is all-in").substringAfterLast(' ').toStack()
         }
         val allIn = line.endsWith("all-in")
         val player = hand.findPlayer(line.take(actionIndex - 1).substringBefore('['))
@@ -176,7 +176,7 @@ class UnibetParser : AbstractRoomParser() {
                     name.takeUnless { it.isEmpty() }?.let {
                         parser.hand.winPot(
                             playerName = it,
-                            chips = l.substringAfterLast(" won ").substringBefore(",").toInt()
+                            chips = l.substringAfterLast(" won ").substringBefore(",").toStack()
                         )
                     }
                     SUMMARY
@@ -190,6 +190,7 @@ class UnibetParser : AbstractRoomParser() {
             //Unibet Hand #1458229914, Tournament #78861092, €4.65 + €0.35 - 10.00/20.00 - No Limit Hold'Em - Total prize €15 - UTC 08:43:54 2026/03/24
             registerSpin(l.substringAfterLast('#').substringBefore(','))
             if(spin.buyInCents == 0){
+                spin.detailedStackMultiplier = 100 // UB can split chips in two ....
                 spin.buyInCents = parseBuyInCents(l.substringBefore('-'))
                 val prizePool = l.substringAfterLast('€').substringBefore(' ').toFloat()
                 spin.multiplier = (prizePool * 100 / spin.buyInCents).toInt()
@@ -252,3 +253,5 @@ private object UnibetPayouts : (Spin) -> PayoutScheme {
 
     val ALL = listOf(STANDARD, SPIN_250)
 }
+
+private fun String.toStack() = (toFloat() * 100).toInt()
