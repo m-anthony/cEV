@@ -14,8 +14,8 @@ class Hand(
     lateinit var hero: Player
     val heroDetected get() = this::hero.isInitialized
 
-    private val _players = mutableListOf<Player>()
-    private val _rounds = mutableListOf(Round(Street.Preflop))
+    private val _players = ArrayList<Player>()
+    private val _rounds = ArrayList<Round>().apply { add(Round(Street.Preflop)) }
 
     enum class Position {
         BU,
@@ -58,6 +58,12 @@ class Hand(
     }
 
     override fun hashCode(): Int  = id.hashCode()
+
+    fun compact() {
+        _players.trimToSize()
+        _rounds.trimToSize()
+        _rounds.forEach { it.compact() }
+    }
 }
 
 data class Player(
@@ -79,9 +85,12 @@ data class Round(
     val board: CardSet = CardSet(),
 ) {
     val actions: List<Action> get() = _actions
-    private val _actions: MutableList<Action> = mutableListOf()
+    private val _actions = ArrayList<Action>()
 
     fun addAction(action: Action) = _actions.add(action)
+    fun compact() {
+        _actions.trimToSize()
+    }
 }
 
 enum class ActionType {

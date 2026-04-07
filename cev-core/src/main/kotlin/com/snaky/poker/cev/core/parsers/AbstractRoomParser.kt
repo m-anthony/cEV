@@ -101,6 +101,7 @@ abstract class AbstractRoomParser: AutoCloseable {
 
     protected fun handFinished() {
         if(!this::hand.isInitialized) return
+        hand.compact()
         val diff = hand.players.sumOf { it.stack - it.remaining }
         if(diff != 0) hand.players[betTracker.uncalledBettor()].remaining += diff //return uncalled bet
 

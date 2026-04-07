@@ -7,6 +7,7 @@ slf4j = "2.0.12"
 compose-plugin = "1.7.3"
 coroutines = "1.10.1"
 kotlinx-serialization = "1.8.0"
+agrona = "2.4.0"
 java = "21"
 
 [libraries]
@@ -18,6 +19,7 @@ log4j-api-kotlin = { group = "org.apache.logging.log4j", name = "log4j-api-kotli
 log4j-core = { group = "org.apache.logging.log4j", name = "log4j-core", version.ref = "log4j" }
 log4j-slf4j-impl = { group = "org.apache.logging.log4j", name = "log4j-slf4j-impl", version.ref = "log4j" }
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
+agrona = { group = "org.agrona", name = "agrona", version.ref = "agrona" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

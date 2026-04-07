@@ -196,7 +196,7 @@ class UnibetParser : AbstractRoomParser() {
                 spin.multiplier = (prizePool * 100 / spin.buyInCents).toInt()
             }
             hand = Hand(l.substringAfter('#').substringBefore(','), spin)
-            if(!spin.hands.add(hand)){
+            if(!spin.add(hand)){
                 duplicateHands++
                 return SKIPPED
             }

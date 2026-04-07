@@ -28,6 +28,7 @@ dependencies {
     implementation(compose.ui)
     implementation(compose.materialIconsExtended)
     implementation(libs.bundles.log4j)
+    runtimeOnly(libs.agrona)
 }
 val appName = "Spin-cEV-calculator"
 val uiGeneratedDir = layout.buildDirectory.dir("generated/ui-resources")
@@ -67,6 +68,14 @@ compose.desktop {
     application {
         mainClass = "com.snaky.poker.cev.ui.UiMainKt"
 
+        jvmArgs(
+            "-XX:+UseG1GC",
+            "-XX:+UseStringDeduplication",
+            "-XX:G1PeriodicGCInterval=60000",
+            "-XX:+G1PeriodicGCInvokesConcurrent",
+            "-XX:MaxHeapFreeRatio=40",
+            "-XX:MinHeapFreeRatio=20",
+        )
         nativeDistributions {
             targetFormats(
                 TargetFormat.Dmg,

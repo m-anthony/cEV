@@ -3,6 +3,7 @@ package com.snaky.poker.cev.core.parsers
 import com.snaky.poker.cev.core.model.Spin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import org.agrona.collections.Object2ObjectHashMap
 import java.io.BufferedInputStream
 import java.io.InputStream
 
@@ -11,7 +12,7 @@ class MetaParser : AutoCloseable {
     val currentSpinCount: Int get() = parsers.sumOf { it.currentSpinCount }
     val invalidSpins: Int get() = parsers.sumOf { it.invalidSpins }
     val duplicateHands : Int get() = parsers.sumOf { it.duplicateHands }
-    val spins: Map<String, Spin> get() = parsers.fold(hashMapOf()) {
+    val spins: Map<String, Spin> get() = parsers.fold(Object2ObjectHashMap()) {
         acc, parser -> acc.also { it.putAll(parser.spins) }
     }
 

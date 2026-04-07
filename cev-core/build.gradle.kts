@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation(project(":SKPokerEval:evaluator"))
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.agrona)
     implementation(libs.bundles.log4j)
 }
 

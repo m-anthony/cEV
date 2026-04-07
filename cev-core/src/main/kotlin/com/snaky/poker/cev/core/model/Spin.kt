@@ -1,5 +1,6 @@
 package com.snaky.poker.cev.core.model
 
+import org.agrona.collections.ObjectHashSet
 import org.apache.logging.log4j.kotlin.logger
 
 class Spin(
@@ -11,7 +12,8 @@ class Spin(
     var buyInCents = 0
     var multiplier = 0
     var winCents = 0
-    val hands = mutableSetOf<Hand>()
+    private val _hands = ObjectHashSet<Hand>()
+    val hands: Set<Hand> = _hands
     lateinit var profile: SpinProfile
         private set
 
@@ -36,7 +38,11 @@ class Spin(
     }
 
     fun add(hand: Hand): Boolean {
-        return hands.add(hand)
+        return _hands.add(hand)
+    }
+
+    fun remove(hand: Hand): Boolean {
+        return _hands.remove(hand)
     }
 
     fun aggregateHands(schemeProvider: (Spin) -> PayoutScheme) {

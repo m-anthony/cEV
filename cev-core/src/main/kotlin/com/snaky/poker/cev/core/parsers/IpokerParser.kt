@@ -87,7 +87,7 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
             0 -> registerAction(Action(player, ActionType.Fold), false)
             1 -> {
                 if(!hand.heroDetected){
-                    spin.hands.remove(hand)
+                    spin.remove(hand)
                     validHand = false
                     return
                 }
