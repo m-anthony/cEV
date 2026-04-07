@@ -51,8 +51,11 @@ class IPokerXmlReader(private val listener: IPokerXmlListener) {
                     when (reader.localName) {
                         "tablename" -> {
                             val name = reader.elementText
-                            if (!(name?.contains("Twister", ignoreCase = true) ?: false)) {
-                                // Security check: must contain "Twister"
+                            if (name == null
+                                || !name.contains("Twister", ignoreCase = true)
+                                || !name.contains('€')
+                            ) {
+                                // Security check: must contain "Twister and euro"
                                 listener.onAborted()
                                 return
                             } else {
