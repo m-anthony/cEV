@@ -26,6 +26,7 @@ interface IPokerXmlListener {
     fun onPlayerInfo(name: String, chips: Int, bet: Int, win: Int)
     // --- 3. Street / Action Flow (Called multiple times per hand) ---
     // street 0/1 = Preflop, 2 = Flop, etc.
+    fun onRoundStart(street: Int)
     fun onHoleCards(playerName: String, cards: String)
 
     fun onAction(street: Int, playerName: String, type: Int, amount: Int)
@@ -95,7 +96,10 @@ class IPokerXmlReader(private val listener: IPokerXmlListener) {
                             win = reader.getAttributeValue(null, "win").toAmount().toInt()
                         )
                     }
-                    "round" -> currentStreet = reader.getAttributeValue(null, "no")?.toInt() ?: 0
+                    "round" -> {
+                        currentStreet = reader.getAttributeValue(null, "no")?.toInt() ?: 0
+                        listener.onRoundStart(currentStreet)
+                    }
                     "cards" -> {
                         val type = reader.getAttributeValue(null, "type") ?: ""
                         val player = reader.getAttributeValue(null, "player")

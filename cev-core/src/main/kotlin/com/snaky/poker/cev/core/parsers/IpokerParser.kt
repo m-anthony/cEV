@@ -115,10 +115,16 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
         }
     }
 
+    override fun onRoundStart(street: Int) {
+        if(!validHand || street < 2) return
+        // create the next round without additional cards, order of cards and actions inside the round is non-deterministic
+        onNextRound(hand.currentRound().board)
+    }
+
     override fun onBoardCards(streetType: String, cards: String) {
         if(!validHand) return
-        val board = if (hand.rounds.size == 1) cards.toCardSet() else hand.currentRound().board.addCard(cards.toCard())
-        onNextRound(board)
+        val board = if (hand.rounds.size == 2) cards.toCardSet() else hand.currentRound().board.addCard(cards.toCard())
+        hand.addToBoard(board)
     }
 
     override fun onHandFinished() {

@@ -14,8 +14,8 @@ class Hand(
     lateinit var hero: Player
     val heroDetected get() = this::hero.isInitialized
 
-    private val _players = ArrayList<Player>()
-    private val _rounds = ArrayList<Round>().apply { add(Round(Street.Preflop)) }
+    private val _players = ArrayList<Player>(3)
+    private val _rounds = ArrayList<Round>(4).apply { add(Round(Street.Preflop)) }
 
     enum class Position {
         BU,
@@ -25,8 +25,12 @@ class Hand(
         HUBB,
     }
 
-    fun nextRound(board : CardSet) = currentRound().street.next()?.also {_rounds.add(Round(it, board))}
+    fun nextRound(board: CardSet) = currentRound().street.next()?.also {_rounds.add(Round(it, board))}
     fun currentRound() = rounds.last()
+    fun addToBoard(board: CardSet) {
+        val lastRound = _rounds.removeLast()
+        _rounds.add(lastRound.copy(board = lastRound.board.addCards(board)))
+    }
 
     fun addPlayer(name: String, stack: Int) : Player {
         val player = Player(name, stack, players.size)
