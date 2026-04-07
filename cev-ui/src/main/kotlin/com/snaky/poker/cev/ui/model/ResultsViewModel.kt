@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 data class ProcessingResults (
-    val spins: Map<String, Spin>,
+    val spins: Collection<Spin>,
     val processingStats : ProcessingStats,
 )
 
@@ -37,10 +37,10 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
     var isCalculating by mutableStateOf(false)
         private set
 
-    private var allSpins = mutableStateOf<Map<String, Spin>>(emptyMap())
+    private var allSpins = mutableStateOf<Collection<Spin>>(emptyList())
 
     val statsRows: List<SpinStats> by derivedStateOf {
-        val currentSpins = allSpins.value.values
+        val currentSpins = allSpins.value
         if (currentSpins.isEmpty()) return@derivedStateOf emptyList()
 
         val filteredSpins = if (selectedStackFilter == null) {
@@ -57,7 +57,7 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
     }
 
     val availableFormats: Map<Int, Int> by derivedStateOf {
-        allSpins.value.values.groupBy { it.startingStack }.mapValues { (_, v) -> v.size }
+        allSpins.value.groupBy { it.startingStack }.mapValues { (_, v) -> v.size }
     }
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -79,7 +79,7 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
                     api.calculateFromDirectories(paths)
                 }.also { results ->
                     processingStats = results.processingStats
-                    allSpins.value = results.spins.also { it.values.computeVariance() }
+                    allSpins.value = results.spins.also { it.computeVariance() }
                 }
             } finally {
                 isCalculating = false
@@ -102,7 +102,7 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
     }
 
     fun clearResults(){
-        allSpins.value = emptyMap()
+        allSpins.value = emptyList()
         processingStats = ProcessingStats()
         currentSpinCount = 0
         selectedStackFilter = null

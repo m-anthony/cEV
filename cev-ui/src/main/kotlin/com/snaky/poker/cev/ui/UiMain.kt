@@ -51,7 +51,8 @@ fun main() = application {
                     waitForResults()
                     close()
                     return ProcessingResults(
-                        spins, ProcessingStats(
+                        spins.mapTo(ArrayList(spins.size)) { (_, s) -> s.toLightModel() },
+                        ProcessingStats(
                             incompleteSpinCount = invalidSpins,
                             duplicateHandCount = duplicateHands,
                             validSpinCount = spins.size

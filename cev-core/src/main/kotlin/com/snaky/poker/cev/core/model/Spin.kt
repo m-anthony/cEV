@@ -12,8 +12,8 @@ class Spin(
     var buyInCents = 0
     var multiplier = 0
     var winCents = 0
-    private val _hands = ObjectHashSet<Hand>()
-    val hands: Set<Hand> = _hands
+    private var _hands: MutableCollection<Hand> = ObjectHashSet()
+    val hands: Collection<Hand> = _hands
     lateinit var profile: SpinProfile
         private set
 
@@ -38,7 +38,7 @@ class Spin(
     }
 
     fun add(hand: Hand): Boolean {
-        return _hands.add(hand)
+        return !hands.contains(hand) && _hands.add(hand)
     }
 
     fun remove(hand: Hand): Boolean {
@@ -88,6 +88,19 @@ class Spin(
             initialStack = startingStack,
             scheme = schemeProvider(this)
         )
+    }
+
+    fun toLightModel(): Spin {
+        val lightSpin = Spin(id, room)
+        lightSpin.startingStack = startingStack
+        lightSpin.valid = valid
+        lightSpin.cev = cev
+        lightSpin.buyInCents = buyInCents
+        lightSpin.winCents = winCents
+        if(this::profile.isInitialized) lightSpin.profile = profile
+        lightSpin._hands = hands.mapTo(ArrayList(hands.size)) { it.toLightModel(lightSpin) }
+
+        return lightSpin
     }
 }
 

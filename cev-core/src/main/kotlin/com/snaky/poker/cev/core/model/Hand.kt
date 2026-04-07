@@ -64,6 +64,21 @@ class Hand(
         _rounds.trimToSize()
         _rounds.forEach { it.compact() }
     }
+
+    fun toLightModel(spin: Spin = this.spin): Hand {
+        //no actions
+        val lightHand = Hand(id, spin)
+        lightHand.timestamp = timestamp
+        lightHand.cev = cev
+        lightHand.blind = blind
+        if(this::position.isInitialized) lightHand.position = position
+        lightHand._players.apply { clear(); trimToSize() }
+        lightHand.equity = equity
+        if(heroDetected) lightHand.hero = hero
+        lightHand._rounds.apply { clear(); trimToSize() }
+
+        return lightHand
+    }
 }
 
 data class Player(
