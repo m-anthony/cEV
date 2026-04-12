@@ -19,6 +19,8 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.core.config.Configurator
 import java.io.File
+import java.io.FileOutputStream
+import java.io.PrintStream
 import java.lang.invoke.MethodHandles
 import javax.imageio.ImageIO
 
@@ -26,63 +28,70 @@ private val logger : Logger by lazy {
     LogManager.getLogger(MethodHandles.lookup().lookupClass())
 }
 
-fun main() = application {
+fun main()  {
 
     val logDir = File(PathManager.appDataDir, "logs").apply {
         if (!exists()) mkdirs()
     }
+
+    val errFile = File(logDir, "console_log.txt")
+    val printStream = PrintStream(FileOutputStream(errFile, false))
+    System.setErr(printStream)
+
     System.setProperty("logDir", logDir.absolutePath)
     Configurator.reconfigure()
     logger.info("Application started, version = {}", AppConfig.version)
 
-    val myApi = object : PokerCalculatorAPI {
+    application {
+        val myApi = object : PokerCalculatorAPI {
 
-        private var parser : MetaParser? = null
-        private val mutex = Mutex()
+            private var parser : MetaParser? = null
+            private val mutex = Mutex()
 
-        override val currentSpinCount get() = parser?.currentSpinCount ?: 0
+            override val currentSpinCount get() = parser?.currentSpinCount ?: 0
 
-        override suspend fun calculateFromDirectories(directories: List<File>): ProcessingResults {
-            if(!mutex.tryLock()) throw IllegalStateException("Busy")
-            try {
-                with(MetaParser()){
-                    parser = this
-                    directories.forEach { processFileOrDirectory(it, this) }
-                    waitForResults()
-                    close()
-                    return ProcessingResults(
-                        spins.mapTo(ArrayList(spins.size)) { (_, s) -> s.toLightModel() },
-                        ProcessingStats(
-                            incompleteSpinCount = invalidSpins,
-                            duplicateHandCount = duplicateHands,
-                            validSpinCount = spins.size
+            override suspend fun calculateFromDirectories(directories: List<File>): ProcessingResults {
+                if(!mutex.tryLock()) throw IllegalStateException("Busy")
+                try {
+                    with(MetaParser()){
+                        parser = this
+                        directories.forEach { processFileOrDirectory(it, this) }
+                        waitForResults()
+                        close()
+                        return ProcessingResults(
+                            spins.mapTo(ArrayList(spins.size)) { (_, s) -> s.toLightModel() },
+                            ProcessingStats(
+                                incompleteSpinCount = invalidSpins,
+                                duplicateHandCount = duplicateHands,
+                                validSpinCount = spins.size
+                            )
                         )
-                    )
+                    }
+                } finally {
+                    parser = null
+                    mutex.unlock()
                 }
-            } finally {
-                parser = null
-                mutex.unlock()
             }
         }
-    }
 
-    val iconStream = Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")
-    val iconPainter = iconStream?.use { ImageIO.read(it).toPainter() }
+        val iconStream = Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")
+        val iconPainter = iconStream?.use { ImageIO.read(it).toPainter() }
 
-    val windowState = rememberWindowState(
-        width = 1200.dp,
-        height = 700.dp
-    )
+        val windowState = rememberWindowState(
+            width = 1200.dp,
+            height = 700.dp
+        )
 
-    val viewModel = MainViewModel(myApi)
+        val viewModel = MainViewModel(myApi)
 
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Spin cEV Calculator v${AppConfig.version}",
-        state = windowState,
-        icon = iconPainter
-    ) {
-        DefaultTheme.initialize()
-        MainView(viewModel)
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Spin cEV Calculator v${AppConfig.version}",
+            state = windowState,
+            icon = iconPainter
+        ) {
+            DefaultTheme.initialize()
+            MainView(viewModel)
+        }
     }
 }
