@@ -128,33 +128,29 @@ class IPokerXmlReader(private val listener: IPokerXmlListener) {
 }
 
 /**
- * Parses strings like "1 200,50€" directly into Double without allocating temporary strings.
+ * Parses strings like "1 200,50€"
+ * support both US and FR separators
  */
 fun String?.toAmount(): Double {
-    if (isNullOrBlank()) return 0.0
+    if (this == null || this.isEmpty()) return 0.0
 
-    var integerPart = 0
-    var decimalPart = 0.0
-    var divisor = 1.0
-    var foundDecimalSeparator = false
+    var rawValue = 0L
+    var lastSeparatorIndex = -1
+    var digitCount = 0
 
-    for (i in 0 until this.length) {
-        when (val c = this[i]) {
-            in '0'..'9' -> {
-                val digit = (c - '0')
-                if (!foundDecimalSeparator) {
-                    integerPart = integerPart * 10 + digit
-                } else {
-                    divisor *= 10
-                    decimalPart += digit / divisor
-                }
-            }
-
-            '.', ',' -> foundDecimalSeparator = true
-
-            // All other characters (spaces, symbols) are ignored
+    for (c in this) {
+        if (c.isDigit()) {
+            rawValue = rawValue * 10 + (c - '0')
+            digitCount++
+        } else if (c == '.' || c == ',') {
+            lastSeparatorIndex = digitCount
         }
     }
 
-    return integerPart + decimalPart
+    val digitsAfterSeparator = if (lastSeparatorIndex == -1) 0 else digitCount - lastSeparatorIndex
+    return when (digitsAfterSeparator) {
+        1 -> rawValue / 10.0
+        2 -> rawValue / 100.0
+        else -> rawValue.toDouble() //it was a separator for thousands, or no separator at all
+    }
 }

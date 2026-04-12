@@ -8,6 +8,7 @@ import java.io.BufferedReader
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import kotlin.math.roundToInt
 
 class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
@@ -16,7 +17,8 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     private var prizePoolCents = 0
     private var heroName: String = ""
     private var validTournament = false
-    private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private val timeFormatters = listOf(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"), DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"))
+    private var lastTimeFormatter: DateTimeFormatter = timeFormatters.first()
     private var validHand = true
 
     override val room = Room.IPOKER
@@ -56,7 +58,7 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     }
 
     override fun onHandStartDate(datetime: String) {
-        hand.timestamp = LocalDateTime.parse(datetime, timeFormatter).toEpochSecond(ZoneOffset.UTC)
+        hand.timestamp = parseDate(datetime).toEpochSecond(ZoneOffset.UTC)
     }
 
     override fun onBigBlind(blind: Int) {
@@ -136,6 +138,23 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
         validTournament = false
     }
 
+    private fun parseDate(datetime: String): LocalDateTime {
+        try {
+            return LocalDateTime.parse(datetime, lastTimeFormatter)
+        } catch (e: DateTimeParseException){
+            for(f in timeFormatters){
+                if(f == lastTimeFormatter) continue
+                try {
+                    val r = LocalDateTime.parse(datetime, f)
+                    lastTimeFormatter = f
+                    return r
+                } catch (_: DateTimeParseException) {
+                    // nothing to do
+                }
+            }
+            throw e
+        }
+    }
 }
 
 private fun String.toCard(): Card {
