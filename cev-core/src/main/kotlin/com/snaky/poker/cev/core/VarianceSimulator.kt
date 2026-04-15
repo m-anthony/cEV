@@ -8,10 +8,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
+import org.agrona.collections.IntArrayList
 import org.apache.logging.log4j.kotlin.logger
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
+import kotlin.time.Duration.Companion.nanoseconds
 
 /**
  * Simulator dedicated to analyzing the impact of variance on poker results.
@@ -49,27 +50,33 @@ object VarianceSimulator {
 
         // Calculate global theoretical EV (weighted sum of each profile's theoretical EV)
         val totalTheoreticalAvg = preparedProfiles.sumOf { it.calculateTheoreticalAvgCents() }
-        val samples = mutableListOf<SimulationSample>()
+        val samples = Array(stacks.size) { IntArrayList() }
         var currentIteration = 0
 
+        val start = System.nanoTime()
+        var seconds = 0L
         try {
+            val sample = IntArray(stacks.size) { 0 }
             while (currentIteration < maxIterations) {
                 repeat(1000) {
                     if (currentIteration < maxIterations) {
-                        val sample = IntArray(stacks.size) { 0 }
+                        sample.fill(0)
                         preparedProfiles.forEach { it.simulate(sample) }
-                        samples.add(SimulationSample(sample.toList()))
+                        sample.forEachIndexed { stackIndex, result -> samples[stackIndex].addInt(result) }
                         currentIteration++
                     }
                 }
-                // Intermediate publishing
-                val currentSnapshot = samples.toMutableList().apply { sort() }
-                val intermediateResult = buildResult(buyInCents, currentSnapshot.toList(), totalTheoreticalAvg, stacks)
-                onResult(intermediateResult)
+                val newSeconds = (System.nanoTime() - start).nanoseconds.inWholeSeconds
+                if (newSeconds != seconds) {
+                    // Intermediate publishing
+                    seconds = newSeconds
+                    val intermediateResult = buildResult(buyInCents, samples, totalTheoreticalAvg, stacks)
+                    onResult(intermediateResult)
+                }
                 yield()
             }
         } catch (_: CancellationException) {
-            logger.trace { "Simulation cancelled at $currentIteration" }
+            logger.info { "Simulation cancelled at $currentIteration for buy-in ${"%.2f".format(buyInCents / 100.0)}" }
         }
 
         // The return value of withContext is determined here
@@ -77,7 +84,7 @@ object VarianceSimulator {
             if (samples.isNotEmpty()) {
                 val finalResult = buildResult(
                     buyInCents = buyInCents,
-                    samples = samples.apply { sort() },
+                    samples = samples,
                     theoreticalAvg = totalTheoreticalAvg,
                     stacks = stacks,
                 )
@@ -145,26 +152,29 @@ object VarianceSimulator {
         return tiers[tiers.size - 1] // Faster than .last()
     }
 
-    private fun buildResult(buyInCents: Int, samples: List<SimulationSample>, theoreticalAvg: Double, stacks: IntArray): SimulationResult {
-        val size = samples.size
+    private fun buildResult(
+        buyInCents: Int,
+        samples: Array<IntArrayList>,
+        theoreticalAvg: Double,
+        stacks: IntArray
+    ): SimulationResult {
+        val size = samples[0].size
         if (size == 0) throw IllegalStateException("Simulation was interrupted before any iteration completed.")
 
-        var sum = 0
-        var sumSqr = 0
-        samples.forEach {
-            sum += it.totalProfitCents
-            sumSqr += it.totalProfitCents * it.totalProfitCents
+        val sortedResultsPerStack = samples.map { resultsPerStack -> resultsPerStack.toIntArray().also { it.sort() } }
+        val samples = listOf(
+            (size * 0.05).toInt(),
+            size / 2,
+            (size * 0.95).toInt()
+        ).map { i ->
+            SimulationSample(sortedResultsPerStack.map { it[i] })
         }
-        val mean = sum / size.toDouble()
-        val stdDev = sqrt(sumSqr / size.toDouble() - mean * mean)
-
         return SimulationResult(
             buyInCents = buyInCents,
             avgProfitCents = theoreticalAvg,
-            medianSample = samples[size / 2],
-            p5Sample = samples[(size * 0.05).toInt()],
-            p95Sample = samples[(size * 0.95).toInt()],
-            standardDeviationCents = stdDev,
+            p5Sample = samples[0],
+            medianSample = samples[1],
+            p95Sample = samples[2],
             iterations = size,
             stacks = stacks.toList(),
         )
@@ -178,7 +188,6 @@ data class SimulationResult(
     val p5Sample: SimulationSample,
     val p95Sample: SimulationSample,
     val avgProfitCents: Double,
-    val standardDeviationCents: Double,
     val iterations: Int,
 ){
     fun profitSelector(stack: Int?): (SimulationSample) -> Int {
