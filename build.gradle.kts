@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
 }
 
-val projectVersion = "1.5-SNAPSHOT"
+val projectVersion = "1.5.0"
 allprojects {
     group = "com.snaky.poker.cev"
     version = projectVersion
