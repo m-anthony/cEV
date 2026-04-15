@@ -8,6 +8,7 @@ import com.snaky.poker.cev.core.model.Hand.Position
 import com.snaky.poker.cev.core.model.Spin
 import com.snaky.poker.cev.core.model.SpinProfile
 import com.snaky.poker.cev.ui.config.ConfigurationManager
+import com.snaky.poker.cev.ui.formatBuyIn
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.*
@@ -35,6 +36,8 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
     var processingStats by mutableStateOf(ProcessingStats())
         private set
     var isCalculating by mutableStateOf(false)
+        private set
+    var isUpdateAvailable by mutableStateOf(false)
         private set
 
     private var allSpins = mutableStateOf<Collection<Spin>>(emptyList())
@@ -158,6 +161,13 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
         }
     }
 
+    fun markUpdateAvailable() {
+        isUpdateAvailable = true
+    }
+    fun clearUpdateAvailable() {
+        isUpdateAvailable = false
+    }
+
 }
 
 private fun createStatsObject(label: String, spins: List<Spin>, showCev: Boolean): SpinStats {
@@ -196,9 +206,4 @@ private fun createStatsObject(label: String, spins: List<Spin>, showCev: Boolean
         cevStdDev = if (!showCev) Double.NaN else sqrt(max(0.0, (sqrEv / count) - (cev * cev))),
         positionalCev = if (!showCev) emptyMap() else posEntries.associateWithTo(EnumMap(Position::class.java)) { positionalEv[it.ordinal] / count }
     )
-}
-
-
-private fun formatBuyIn(buyInCents: Int): String {
-    return if (buyInCents % 100 == 0) "${buyInCents / 100} €" else "%.2f €".format(buyInCents / 100.0)
 }

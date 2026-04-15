@@ -1,23 +1,27 @@
 package com.snaky.poker.cev.ui
 
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.toPainter
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.snaky.poker.cev.core.FileCrawler.processFileOrDirectory
 import com.snaky.poker.cev.core.parsers.MetaParser
 import com.snaky.poker.cev.ui.config.PathManager
-import com.snaky.poker.cev.ui.model.MainViewModel
-import com.snaky.poker.cev.ui.model.PokerCalculatorAPI
-import com.snaky.poker.cev.ui.model.ProcessingResults
-import com.snaky.poker.cev.ui.model.ProcessingStats
+import com.snaky.poker.cev.ui.model.*
 import com.snaky.poker.cev.ui.theme.DefaultTheme
+import com.snaky.poker.cev.ui.view.LiveWidgetView
 import com.snaky.poker.cev.ui.view.MainView
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.core.config.Configurator
+import java.awt.Window
 import java.io.File
 import java.io.FileOutputStream
 import java.io.PrintStream
@@ -45,15 +49,15 @@ fun main()  {
     application {
         val myApi = object : PokerCalculatorAPI {
 
-            private var parser : MetaParser? = null
+            private var parser: MetaParser? = null
             private val mutex = Mutex()
 
             override val currentSpinCount get() = parser?.currentSpinCount ?: 0
 
             override suspend fun calculateFromDirectories(directories: List<File>): ProcessingResults {
-                if(!mutex.tryLock()) throw IllegalStateException("Busy")
+                if (!mutex.tryLock()) throw IllegalStateException("Busy")
                 try {
-                    with(MetaParser()){
+                    with(MetaParser()) {
                         parser = this
                         directories.forEach { processFileOrDirectory(it, this) }
                         waitForResults()
@@ -81,8 +85,9 @@ fun main()  {
             width = 1200.dp,
             height = 700.dp
         )
+        var mainWindowInstance: Window? by remember { mutableStateOf(null) }
 
-        val viewModel = MainViewModel(myApi)
+        val viewModel = remember { MainViewModel(myApi) }
 
         Window(
             onCloseRequest = ::exitApplication,
@@ -90,8 +95,86 @@ fun main()  {
             state = windowState,
             icon = iconPainter
         ) {
+            LaunchedEffect(Unit) {
+                mainWindowInstance = window
+            }
+
             DefaultTheme.initialize()
             MainView(viewModel)
+        }
+
+
+
+        val liveModel = viewModel.liveSessionModel
+
+        val showWidget by remember {
+            liveModel.uiState
+                .map { it.liveWidgetConfig != null && it.status == SessionStatus.TRACKING }
+                .distinctUntilChanged()
+        }.collectAsState(false)
+
+        if (showWidget && liveModel.enabled) {
+            val initialConfig = remember { liveModel.uiState.value.liveWidgetConfig!! }
+
+            val startPosition = remember {
+                if (initialConfig.x == 0 && initialConfig.y == 0 && mainWindowInstance != null) {
+                    // Default position = centered in main window
+                    val mainX = mainWindowInstance!!.x
+                    val mainY = mainWindowInstance!!.y
+                    val mainW = mainWindowInstance!!.width
+                    val mainH = mainWindowInstance!!.height
+
+                    WindowPosition(
+                        (mainX + (mainW - 180) / 2).dp,
+                        (mainY + (mainH - 60) / 2).dp
+                    )
+                } else {
+                    WindowPosition(initialConfig.x.dp, initialConfig.y.dp)
+                }
+            }
+
+            val widgetState = rememberWindowState(
+                position = startPosition,
+                size = DpSize(180.dp, 60.dp)
+            )
+
+            Window(
+                onCloseRequest = { liveModel.toggleLiveWidget(false) },
+                state = widgetState,
+                alwaysOnTop = true,
+                transparent = true,
+                undecorated = true,
+                resizable = false,
+                focusable = true,
+                title = "Live Stats",
+                icon = iconPainter
+            ) {
+                val currentState by liveModel.uiState.collectAsState()
+
+                LaunchedEffect(widgetState.position) {
+                    val pos = widgetState.position
+                    if (pos is WindowPosition.Absolute) {
+                        liveModel.updateWidgetPosition(pos.x.value.toInt(), pos.y.value.toInt())
+                    }
+                }
+
+                LiveWidgetView(
+                    uiState = currentState,
+                    onDoubleClick = {
+                        (mainWindowInstance as? javax.swing.JFrame)?.let { frame ->
+                            val isMinimized = frame.extendedState == javax.swing.JFrame.ICONIFIED
+
+                            if (isMinimized || !frame.isVisible) {
+                                frame.extendedState = javax.swing.JFrame.NORMAL
+                                frame.isVisible = true
+                                frame.toFront()
+                            } else {
+                                frame.extendedState = javax.swing.JFrame.ICONIFIED
+                            }
+                        }
+                    }
+                )
+            }
         }
     }
 }

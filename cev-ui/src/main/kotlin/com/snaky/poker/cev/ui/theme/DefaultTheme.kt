@@ -64,6 +64,8 @@ object DefaultTheme {
 
         val TextOnAction = Color(0xFFFFFFFF) // Ton White sémantique
 
+        val Success = Color(0xFF2E7D32)
+
         // Utilitaires pour éviter les imports graphiques dans les vues
         val Transparent = Color.Transparent
         val WindowBackground = Color(0xFFF5F5F2)
@@ -118,6 +120,7 @@ object DefaultTheme {
         var BodyBold = TextStyle.Default ; private set
         var Header = TextStyle.Default ; private set
         var Headline = TextStyle.Default ; private set
+        var HeadlineMonospace = TextStyle.Default ; private set
         var LabelBold = TextStyle.Default ; private set
         var Small = TextStyle.Default ; private set
         var TitleBold: TextStyle = TextStyle.Default ; private set
@@ -133,6 +136,7 @@ object DefaultTheme {
             BodyBold = typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             Header = typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold)
             Headline = typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
+            HeadlineMonospace = Headline.copy(fontFamily = FontFamily.Monospace)
             LabelBold = typography.labelLarge.copy(fontWeight = FontWeight.Bold)
             Small = typography.labelMedium
             TitleBold = typography.titleMedium.copy(

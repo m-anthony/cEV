@@ -1,10 +1,10 @@
 package com.snaky.poker.cev.ui.view
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -18,9 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.snaky.poker.cev.ui.UpdateBanner
 import com.snaky.poker.cev.ui.components.PokerActionButton
+import com.snaky.poker.cev.ui.components.PokerStatusCard
+import com.snaky.poker.cev.ui.components.StatusData
 import com.snaky.poker.cev.ui.config.ConfigurationManager
 import com.snaky.poker.cev.ui.config.HistorySource
 import com.snaky.poker.cev.ui.model.ProcessingStats
@@ -44,7 +44,6 @@ fun ResultsView(viewModel: ResultsViewModel, onBusyState: (Boolean) -> Unit) {
         })
     } else {
         Column(modifier = Modifier.fillMaxSize().padding(DefaultTheme.Dimensions.CONTAINER_PADDING)) {
-            UpdateBanner()
             Spacer(Modifier.height(DefaultTheme.Dimensions.CHIP_SPACING))
 
             Row(
@@ -96,68 +95,47 @@ private fun ActionArea(viewModel: ResultsViewModel, hasActiveSources: Boolean) {
                 Spacer(Modifier.width(8.dp))
                 Text("STOP CALCULATION", style = DefaultTheme.Typography.ButtonLabel)
             }
-        } else if (viewModel.statsRows.isNotEmpty()) {
-            ProcessingResultCard(viewModel.processingStats)
-        } else {
+        } else if (viewModel.statsRows.isEmpty() || viewModel.isUpdateAvailable) {
             PokerActionButton(
                 text = "PROCESS HISTORY FILES",
                 icon = Icons.Outlined.PlayArrow,
-                onClick = { viewModel.runCalculation() },
+                onClick = { viewModel.apply { clearUpdateAvailable(); runCalculation() } },
                 enabled = hasActiveSources,
                 modifier = Modifier.fillMaxSize()
             )
+        } else {
+            ProcessingResultCard(
+                stats = viewModel.processingStats
+            )
         }
     }
 }
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ProcessingResultCard(stats: ProcessingStats) {
-    val showIncomplete = stats.incompleteSpinCount > 0
-    val showDuplicates = stats.duplicateHandCount > 0
-    val displayCount = 1 + (if (showIncomplete) 1 else 0) + (if (showDuplicates) 1 else 0)
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        shape = DefaultTheme.Shapes.Medium,
-        border = BorderStroke(1.dp, DefaultTheme.Colors.Divider),
-        color = DefaultTheme.Colors.WindowBackground,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ResultItem(stats.validSpinCount, "valid spins", Color(0xFF1B5E20), displayCount == 1)
+    val primaryStatus = StatusData(
+        count = stats.validSpinCount,
+        label = "valid spins",
+        color = Color(0xFF1B5E20) // Vert sombre identique à ton screen
+    )
 
-            if (displayCount > 1) {
-                Spacer(Modifier.width(32.dp))
-                if (displayCount == 3) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        ResultItem(stats.incompleteSpinCount, "incomplete spins", Color(0xFFE65100), false)
-                        ResultItem(stats.duplicateHandCount, "duplicate hands", Color(0xFF212121), false)
-                    }
-                } else {
-                    if (showIncomplete) ResultItem(stats.incompleteSpinCount, "incomplete spins", Color(0xFFE65100), false)
-                    else ResultItem(stats.duplicateHandCount, "duplicate hands", Color(0xFF212121), false)
-                }
-            }
+    val secondaryStatuses = buildList {
+        if (stats.incompleteSpinCount > 0) {
+            add(StatusData(stats.incompleteSpinCount, "incomplete spins", Color(0xFFE65100)))
+        }
+        if (stats.duplicateHandCount > 0) {
+            add(StatusData(stats.duplicateHandCount, "duplicate hands", Color(0xFF212121)))
         }
     }
-}
 
-@Composable
-private fun ResultItem(count: Int, label: String, color: Color, isLarge: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(if (isLarge) 8.dp else 6.dp).background(color, CircleShape))
-        Spacer(Modifier.width(if (isLarge) 12.dp else 8.dp))
-        Text(
-            text = "$count $label",
-            color = color,
-            style = DefaultTheme.Typography.Body.copy(
-                fontSize = if (isLarge) 15.sp else 13.sp,
-                fontWeight = FontWeight.Medium
-            )
-        )
-    }
+    PokerStatusCard(
+        primaryStatus = primaryStatus,
+        secondaryStatuses = secondaryStatuses,
+        modifier = Modifier.fillMaxSize()
+    )
 }
 
 @Composable

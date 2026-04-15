@@ -35,7 +35,7 @@ fun main() {
     println("Processing done in ${processingTime.duration}.")
 
     val spins = parser.spins.values
-    val spinsByBuyIn = spins.groupBy { it.buyInCents }
+    val spinsByBuyIn = spins.groupBy { it.buyInCents / 100.0}
     val statsByBuyIn = spinsByBuyIn.mapValues { (_, l) -> Stats.fromSpins(l) }
     displayStats(statsByBuyIn, "Buy-in", Stats.fromSpins(spins))
 

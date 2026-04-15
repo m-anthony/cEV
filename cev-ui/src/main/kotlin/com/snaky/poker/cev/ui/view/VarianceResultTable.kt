@@ -152,12 +152,8 @@ fun VarianceResultTable(
                         else -> Color.Transparent
                     }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(rowBackground)
-                            .padding(DefaultTheme.Dimensions.TABLE_ROW_PADDING),
-                        verticalAlignment = Alignment.CenterVertically
+                    PokerTableRow(
+                        modifier = Modifier.background(rowBackground) // On force notre couleur
                     ) {
                         val label = when(point.percentile) {
                             1 -> "1% (Worst)"

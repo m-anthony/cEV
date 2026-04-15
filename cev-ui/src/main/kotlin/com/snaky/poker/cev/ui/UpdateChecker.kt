@@ -1,37 +1,46 @@
 package com.snaky.poker.cev.ui
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.apache.logging.log4j.kotlin.logger
-import java.awt.Desktop
 import java.net.HttpURLConnection
 import java.net.URI
+import kotlin.time.Duration.Companion.seconds
 
 
 object UpdateChecker {
     private const val GITHUB_API_URL = "https://api.github.com/repos/m-anthony/cEV/releases/latest"
     val CURRENT_VERSION = AppConfig.version
 
-    fun checkForUpdates(): String? {
+    var latestVersion by mutableStateOf<String?>(null)
+        private set
+
+    var isReady by mutableStateOf(false)
+        private set
+
+    suspend fun initialize() {
+        if (isReady) return
+
+        try {
+            val result = withTimeoutOrNull(5.seconds) {
+                withContext(Dispatchers.IO) {
+                    checkForUpdates()
+                }
+            }
+            latestVersion = result
+        } catch (_: Exception) {
+        } finally {
+            isReady = true
+        }
+    }
+
+    private fun checkForUpdates(): String? {
         // Short-circuit if we are in a dev environment
         if (CURRENT_VERSION.contains("SNAPSHOT")) return null
 
@@ -75,51 +84,3 @@ object UpdateChecker {
 }
 
 
-@Composable
-fun UpdateBanner() {
-    // State to hold the new version tag (null if no update or dev mode)
-    var latestVersion by remember { mutableStateOf<String?>(null) }
-
-    // Launch the check once when the component enters the Composition
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            latestVersion = UpdateChecker.checkForUpdates()
-        }
-    }
-
-    // AnimatedVisibility makes the banner slide in smoothly
-    AnimatedVisibility(
-        visible = latestVersion != null,
-        enter = expandVertically() + fadeIn(),
-        exit = shrinkVertically() + fadeOut()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFFFF3CD)) // Light yellow/amber background
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "🚀 a new version ($latestVersion) is available ! ",
-                fontSize = 13.sp,
-                color = Color(0xFF856404)
-            )
-            Text(
-                text = "Download update",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF0056b3),
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable {
-                    try {
-                        Desktop.getDesktop().browse(URI("https://github.com/m-anthony/cEV/releases/latest"))
-                    } catch (e: Exception) {
-                        logger.warn { "Could not open browser: ${e.message}" }
-                    }
-                }
-            )
-        }
-    }
-}

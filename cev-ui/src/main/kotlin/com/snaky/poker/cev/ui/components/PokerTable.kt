@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -21,7 +22,7 @@ fun PokerTable(
     modifier: Modifier = Modifier,
     headerContent: @Composable RowScope.() -> Unit,
     bodyContent: LazyListScope.() -> Unit,
-    totalContent: @Composable (RowScope.() -> Unit)? = null
+    totalContent: @Composable (RowScope.() -> Unit)? = null,
 ) {
     Surface(
         shape = DefaultTheme.Shapes.Large,
@@ -68,6 +69,28 @@ fun PokerTable(
 }
 
 @Composable
+fun PokerTableRow(
+    modifier: Modifier = Modifier,
+    index: Int = 0,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val backgroundColor = if (index % 2 == 0) {
+        DefaultTheme.Colors.Transparent
+    } else {
+        DefaultTheme.Colors.WindowBackground
+    }
+
+    Row(
+        modifier = Modifier.background(backgroundColor)
+            .then(modifier)
+            .fillMaxWidth()
+            .padding(DefaultTheme.Dimensions.TABLE_ROW_PADDING), //
+        verticalAlignment = Alignment.CenterVertically,
+        content = content
+    )
+}
+
+@Composable
 fun PokerHeaderCell(
     text: String,
     modifier: Modifier = Modifier,
@@ -104,6 +127,7 @@ fun PokerCellText(
     isTotal: Boolean = false,
     isInteractive: Boolean = false,
     textAlign: TextAlign = TextAlign.End,
+    color: Color? = null
 ) {
     Box(
         modifier = modifier.defaultMinSize(minHeight = DefaultTheme.Dimensions.TABLE_ROW_MIN_HEIGHT),
@@ -119,7 +143,7 @@ fun PokerCellText(
             style = if (isTotal) DefaultTheme.Typography.BodyBold else DefaultTheme.Typography.Body,
             textDecoration = if (isInteractive) TextDecoration.Underline else TextDecoration.None,
             textAlign = textAlign,
-            color = when {
+            color = color ?: when {
                 isTotal -> DefaultTheme.Colors.TextContrast
                 else -> DefaultTheme.Colors.TextPrimary
             }
@@ -134,4 +158,5 @@ fun PokerCellText(
     isTotal: Boolean = false,
     isInteractive: Boolean = false,
     textAlign: TextAlign = TextAlign.End,
-) = PokerCellText(AnnotatedString(text), modifier, isTotal, isInteractive, textAlign)
+    color: Color? = null,
+) = PokerCellText(AnnotatedString(text), modifier, isTotal, isInteractive, textAlign, color)

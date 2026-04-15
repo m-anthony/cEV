@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.snaky.poker.cev.core.model.Room
 import com.snaky.poker.cev.ui.components.PokerActionButton
+import com.snaky.poker.cev.ui.formatCents
 import com.snaky.poker.cev.ui.model.VarianceViewModel
 import com.snaky.poker.cev.ui.theme.DefaultTheme
 
@@ -313,5 +314,3 @@ private fun buildUiState(gt: String, ct: String, rpt: String, rtt: String, st: S
     simulationCount = st.toIntOrNull() ?: DEFAULT_SIMU,
     initialStack = skt.toIntOrNull() ?: 500
 )
-
-fun formatCents(cents: Int): String = "%.2f €".format(cents / 100.0)

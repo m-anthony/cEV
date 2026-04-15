@@ -1,6 +1,5 @@
 package com.snaky.poker.cev.ui.view
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
@@ -13,8 +12,10 @@ import androidx.compose.ui.text.withStyle
 import com.snaky.poker.cev.core.model.Hand
 import com.snaky.poker.cev.ui.amountAnnotatedString
 import com.snaky.poker.cev.ui.components.*
+import com.snaky.poker.cev.ui.formatStartingStack
 import com.snaky.poker.cev.ui.model.SpinStats
 import com.snaky.poker.cev.ui.theme.DefaultTheme
+import com.snaky.poker.cev.ui.toAmountAnnotatedString
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -33,11 +34,11 @@ fun StatsTable(
     val columns = listOf(
         "Buy-in" to { s: SpinStats -> AnnotatedString(s.label) },
         "Games" to { s: SpinStats -> AnnotatedString(s.count.toString()) },
-        "Winnings" to { s: SpinStats -> amountAnnotatedString(s.netGain)},
         "cEV" to { s: SpinStats -> s.formatCev() },
         "EV$" to { s: SpinStats -> s.formatEvMoney(rows, selectedStack) },
+        "Net Won" to { s: SpinStats -> amountAnnotatedString(s.netGain)},
+        "ROI" to { s: SpinStats -> "%.2f %%".format(s.roi * 100).toAmountAnnotatedString(s.roi) },
         "ITM" to { s: SpinStats -> AnnotatedString("%.1f %%".format(s.itm * 100)) },
-        "ROI" to { s: SpinStats -> AnnotatedString("%.2f %%".format(s.roi * 100)) },
         "cEV BU" to { s: SpinStats -> s.formatPositionCev(Hand.Position.BU) },
         "cEV SB" to { s: SpinStats -> s.formatPositionCev(Hand.Position.SB) },
         "cEV BB" to { s: SpinStats -> s.formatPositionCev(Hand.Position.BB) },
@@ -61,14 +62,7 @@ fun StatsTable(
             },
             bodyContent = {
                 itemsIndexed(dataRows) { index, row ->
-                    val isAlternated = index % 2 != 0
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(if (isAlternated) DefaultTheme.Colors.TableBackground else DefaultTheme.Colors.WindowBackground) // <-- AJOUT ICI
-                            .padding(DefaultTheme.Dimensions.TABLE_ROW_PADDING),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    PokerTableRow(index = index) {
                         columns.forEach { (title, formatter) ->
                             val cellModifier = Modifier.weight(1f)
                             val content = formatter(row)
@@ -125,16 +119,10 @@ private fun FormatSelector(
         PokerFilterChip(selected = selectedStack == null, onClick = { onSelect(null) }, label = "All")
 
         availableFormats.forEach { (stack, count) ->
-            val label = when(stack) {
-                200 -> "Flash"
-                300 -> "Nitro"
-                500 -> "Regular"
-                else -> "$stack bb"
-            }
             PokerFilterChip(
                 selected = selectedStack == stack,
                 onClick = { onSelect(stack) },
-                label = "$label ($count)"
+                label = "${formatStartingStack(stack)} ($count)"
             )
         }
     }

@@ -15,7 +15,11 @@ fun amountAnnotatedString(value: Double): AnnotatedString {
 
 fun String.toAmountAnnotatedString(value: Double): AnnotatedString {
     return buildAnnotatedString {
-        val color = if (value < 0) DefaultTheme.Colors.TextDanger else Color.Unspecified
+        val color = when {
+            value < 0 -> DefaultTheme.Colors.TextDanger
+            value > 0 -> DefaultTheme.Colors.Success
+            else -> Color.Unspecified
+        }
         withStyle(style = SpanStyle(color = color)) {
             append(this@toAmountAnnotatedString)
         }
@@ -31,4 +35,17 @@ fun pickDirectory(lastPath: File?, onPathSelected: (String) -> Unit) {
     if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
         onPathSelected(chooser.selectedFile.absolutePath)
     }
+}
+
+fun formatBuyIn(buyInCents: Int): String {
+    return if (buyInCents % 100 == 0) "${buyInCents / 100} €" else "%.2f €".format(buyInCents / 100.0)
+}
+
+fun formatCents(cents: Int): String = "%.2f €".format(cents / 100.0)
+
+fun formatStartingStack(stack: Int) = when (stack) {
+    200 -> "Flash"
+    300 -> "Nitro"
+    500 -> "Regular"
+    else -> "$stack chips"
 }
