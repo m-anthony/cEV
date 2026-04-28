@@ -32,7 +32,7 @@ private val logger : Logger by lazy {
     LogManager.getLogger(MethodHandles.lookup().lookupClass())
 }
 
-fun main()  {
+fun main(args: Array<String>)  {
 
     val logDir = File(PathManager.appDataDir, "logs").apply {
         if (!exists()) mkdirs()
@@ -41,6 +41,26 @@ fun main()  {
     val errFile = File(logDir, "console_log.txt")
     val printStream = PrintStream(FileOutputStream(errFile, false))
     System.setErr(printStream)
+
+    // Check if the CLI mode is requested
+    val cliIndex = args.indexOf("--cli")
+
+    if (cliIndex != -1 && args.size > cliIndex + 1) {
+
+        val fqcn = args[cliIndex + 1]
+        val toolArgs = args.drop(cliIndex + 2).toTypedArray()
+
+        try {
+            invokeExternalTool(fqcn, toolArgs)
+        } catch (e: Exception) {
+            // We print the error and exit to avoid launching the UI in case of failure
+            System.err.println("Error: Failed to invoke CLI tool '$fqcn'")
+            e.printStackTrace(System.err)
+        }
+        return
+    }
+
+
 
     System.setProperty("logDir", logDir.absolutePath)
     Configurator.reconfigure()
@@ -176,5 +196,27 @@ fun main()  {
                 )
             }
         }
+    }
+}
+
+private fun invokeExternalTool(fqcn: String, toolArgs: Array<String>) {
+    try {
+        System.err.println("[DEBUG] Tentative de chargement : $fqcn")
+        val clazz = Class.forName(fqcn)
+        val mainMethod = clazz.getMethod("main", Array<String>::class.java)
+
+        System.err.println("[DEBUG] Methode trouvee. Args: ${toolArgs.size}")
+
+        // Cast explicite vers Array<Any?> pour satisfaire la signature
+        // invoke(Object obj, Object... args) de Java
+        val argsForInvoke = arrayOf<Any?>(toolArgs)
+
+        mainMethod.invoke(null, *argsForInvoke)
+
+        System.err.println("[DEBUG] Execution terminee.")
+    } catch (e: Exception) {
+        System.err.println("[ERREUR] Echec lors de l'invocation")
+        val cause = e.cause ?: e
+        cause.printStackTrace(System.err)
     }
 }
