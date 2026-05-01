@@ -8,10 +8,13 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
+
+
 class UnibetParser : AbstractRoomParser() {
 
     private var state = ParserState.INIT
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss yyyy/MM/dd")
+    private var validSpinHistory = false
     override val room: Room = Room.UNIBET
     override val getAllPayoutScheme = UnibetPayouts.ALL
     override val payoutProvider: (Spin) -> PayoutScheme = UnibetPayouts
@@ -29,7 +32,13 @@ class UnibetParser : AbstractRoomParser() {
 
     }
 
-    override fun validateHeader(header: String, fileName: String): Boolean = header.startsWith("Unibet Hand #") && fileName.contains("Spin", ignoreCase = true)
+    override fun validateHeader(header: String, fileName: String): Boolean {
+        return if(fileName.contains("Spin")) {
+            header.startsWith("Unibet Hand #")
+        } else {
+            header.contains("=== HAND HISTORIES ===") || header.contains("=== TOURNAMENT SUMMARIES ===")
+        }
+    }
 
     private fun parseSeat(l: String){
         val playerName = l.substringAfter(": ").substringBefore('[').substringBefore(" (")
@@ -102,11 +111,29 @@ class UnibetParser : AbstractRoomParser() {
         registerAction(Action(player, actionType, allIn, amount))
     }
 
+    private fun parseTournamentSummaryLine(l: String) {
+        if(l.startsWith("Unibet Tournament")) {
+            validSpinHistory = false
+            val spinId = l.substringAfter('#').substringBefore(',')
+            spins[spinId]?.let {
+                validSpinHistory = true
+                spin = it
+            }
+        } else if(validSpinHistory) when {
+            l.startsWith("Buy-In") -> spin.buyInCents = parseBuyInCents(l)
+            l.contains("Prize Pool") -> spin.multiplier =
+                (l.substringAfter('€').toFloat() * 100 / spin.buyInCents).toInt()
+        }
+    }
+
     private enum class ParserState {
 
         INIT {
-            override fun parseLine(l: String, parser: UnibetParser) =
-                if (l.contains("Hand #")) parser.initHand(l) else INIT
+            override fun parseLine(l: String, parser: UnibetParser) = when {
+                l.contains("Hand #") -> parser.initHand(l)
+                l.contains("=== TOURNAMENT SUMMARIES ===") -> TOURNAMENT_SUMMARIES
+                else -> INIT
+            }
         },
 
         SKIPPED {
@@ -182,9 +209,23 @@ class UnibetParser : AbstractRoomParser() {
                     SUMMARY
                 }
             }
+        },
+        TOURNAMENT_SUMMARIES {
+            override fun parseLine(
+                l: String,
+                parser: UnibetParser
+            ): ParserState {
+                parser.parseTournamentSummaryLine(l)
+                return TOURNAMENT_SUMMARIES
+            }
+
+
         };
 
         abstract fun parseLine(l: String, parser: UnibetParser): ParserState
+
+
+
 
         fun UnibetParser.initHand(l: String): ParserState { //TODO private
             //Unibet Hand #1458229914, Tournament #78861092, €4.65 + €0.35 - 10.00/20.00 - No Limit Hold'Em - Total prize €15 - UTC 08:43:54 2026/03/24
@@ -192,8 +233,11 @@ class UnibetParser : AbstractRoomParser() {
             if(spin.buyInCents == 0){
                 spin.detailedStackMultiplier = 100 // UB can split chips in two ....
                 spin.buyInCents = parseBuyInCents(l.substringBefore('-'))
-                val prizePool = l.substringAfterLast('€').substringBefore(' ').toFloat()
-                spin.multiplier = (prizePool * 100 / spin.buyInCents).toInt()
+                if(spin.buyInCents > 0) {
+                    //bugged in zipped HH, need to fill with tournament summaries
+                    val prizePool = l.substringAfterLast('€').substringBefore(' ').toFloat()
+                    spin.multiplier = (prizePool * 100 / spin.buyInCents).toInt()
+                }
             }
             hand = Hand(l.substringAfter('#').substringBefore(','), spin)
             if(!spin.add(hand)){
@@ -209,7 +253,9 @@ class UnibetParser : AbstractRoomParser() {
 }
 
 // extract main bi + rake, there should be only 2 '€' sign in the string
+// return -1 with illegal strings
 private fun parseBuyInCents(buyIn: String) : Int {
+    if(!buyIn.contains('€')) return -1
     var res = buyIn.substringAfter('€').substringBefore(' ').toFloat() //main
     res += buyIn.substringAfterLast('€').substringBefore(' ').toFloat() //rake
     return (100 * res).toInt()
