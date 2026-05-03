@@ -60,18 +60,18 @@ abstract class SpinWatcherContext(
             val currentTime = System.currentTimeMillis()
             val currentSize = historyFile.length()
 
-            if (isClosingSignalReceived) {
-                if(executeFinalParse(historyFile)) return
-            } else if (currentSize != lastFileSize) {
+            if(currentTime - lastActivityTime > staleThreshold) {
+                onStaleDetected(spinId, historyFile)
+                break
+            } else if(isClosingSignalReceived) {
+                if (executeFinalParse(historyFile)) break
+            } else if(currentSize != lastFileSize) {
                 lastFileSize = currentSize
                 lastActivityTime = historyFile.lastModified()
                 onHeartbeat()
                 if (shouldAttemptParseOnEveryUpdate() && currentSize > 0) {
                     if (executeFinalParse(historyFile)) return
                 }
-            } else if (currentTime - lastActivityTime > staleThreshold) {
-                onStaleDetected(spinId, historyFile)
-                break
             }
         }
     }
