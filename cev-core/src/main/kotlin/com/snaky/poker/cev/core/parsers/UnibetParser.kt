@@ -94,8 +94,8 @@ class UnibetParser : AbstractRoomParser() {
         }
         // some line should be ignored, but the player name may contain an action verb
         if (actionIndex == -1
-            || line.indexOf(" is disconnected ", actionIndex + 1) != -1
-            || line.indexOf(" is reconnected ", actionIndex + 1) != -1
+            || line.indexOf(" is disconnected", actionIndex + 1) != -1
+            || line.indexOf(" is reconnected", actionIndex + 1) != -1
             || line.indexOf(" wins ", actionIndex + 1) != -1
             || line.indexOf(" shows ", actionIndex + 1) != -1) {
             return
