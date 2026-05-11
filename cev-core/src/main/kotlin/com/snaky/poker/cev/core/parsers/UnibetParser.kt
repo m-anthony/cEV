@@ -28,7 +28,7 @@ class UnibetParser : AbstractRoomParser() {
             line = reader.readLine()
         }
         //there is no delimiter for the last hand of the file, so EOF should trigger some actions
-        if (state != ParserState.SKIPPED) handFinished()
+        if (state != ParserState.SKIPPED && state != ParserState.TOURNAMENT_SUMMARIES) handFinished()
 
     }
 
@@ -142,8 +142,11 @@ class UnibetParser : AbstractRoomParser() {
             }
         },
         INIT_HAND {
-            override fun parseLine(l: String, parser: UnibetParser) =
-                if (l == "*** Seated players ***") SEATS else INIT_HAND
+            override fun parseLine(l: String, parser: UnibetParser) = when {
+                l.contains("Table") && !l.contains("3-max") -> SKIPPED //not a spin
+                l == "*** Seated players ***" -> SEATS
+                else -> INIT_HAND
+            }
         },
         SEATS {
             override fun parseLine(l: String, parser: UnibetParser): ParserState {
