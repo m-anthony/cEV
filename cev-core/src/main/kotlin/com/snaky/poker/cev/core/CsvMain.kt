@@ -27,7 +27,7 @@ fun main(args: Array<String>) {
         parser.waitForResults()
         parser.close()
         PrintStream(outputFile).use {
-            it.println("id;cev;cevBU;cevSB;cevBB;cevSBHU;cevBHU")
+            it.println("id;cev;cevBU;cevSB;cevBB;cevSBHU;cevBBHU")
             parser.spins.values.forEach { spin -> it.println(spin.getDataList().joinToString(separator = ";")) }
         }
         //uses err because stdout not available in CLI mode
