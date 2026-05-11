@@ -1,5 +1,7 @@
 package com.snaky.poker.cev.core
 
+import com.snaky.poker.cev.core.model.Hand
+import com.snaky.poker.cev.core.model.Spin
 import com.snaky.poker.cev.core.parsers.MetaParser
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -25,9 +27,23 @@ fun main(args: Array<String>) {
         parser.waitForResults()
         parser.close()
         PrintStream(outputFile).use {
-            parser.spins.forEach { (id, spin) -> it.println("$id;${spin.cev.roundToInt()}") }
+            it.println("id;cev;cevBU;cevSB;cevBB;cevSBHU;cevBHU")
+            parser.spins.values.forEach { spin -> it.println(spin.getDataList().joinToString(separator = ";")) }
         }
         //uses err because stdout not available in CLI mode
         System.err.println("${parser.spins.count()} spins exported to ${outputFile.absolutePath}")
     }
+}
+
+private fun Spin.getDataList() : List<Any> {
+    val cevByPosition = hands.groupingBy { it.position }.fold(0.0) { cev, spin -> cev + spin.cev}
+    return listOf(
+        id,
+        cev.roundToInt(),
+        cevByPosition[Hand.Position.BU]?.roundToInt() ?: 0,
+        cevByPosition[Hand.Position.SB]?.roundToInt() ?: 0,
+        cevByPosition[Hand.Position.BB]?.roundToInt() ?: 0,
+        cevByPosition[Hand.Position.HUSB]?.roundToInt() ?: 0,
+        cevByPosition[Hand.Position.HUBB]?.roundToInt() ?: 0,
+    )
 }
