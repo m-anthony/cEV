@@ -67,7 +67,6 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
 
     override fun onPlayerInfo(name: String, chips: Int, bet: Int, win: Int) {
         if(!validHand) return
-        if(spin.hands.size == 1) spin.startingStack = chips
         val player = hand.addPlayer(name, chips)
         if(name == heroName){
             hand.hero = player

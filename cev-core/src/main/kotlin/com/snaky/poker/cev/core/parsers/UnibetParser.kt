@@ -70,7 +70,6 @@ class UnibetParser : AbstractRoomParser() {
     private fun parseCards(l: String){
         val cardsString = l.substringAfterLast('[', "").also { if(it.isEmpty()) return }
         val player = hand.findPlayer(l.substringAfter("Dealt to ").substringBefore(' ').substringBefore('['))
-        if(player == hand.hero && spin.hands.size == 1) spin.startingStack = player.stack / spin.detailedStackMultiplier
         player.cards = CardSet.parse(cardsString)
     }
 

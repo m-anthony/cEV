@@ -58,7 +58,9 @@ class Spin(
             return
         }
         val sortedHands = hands.sortedWith(compareBy<Hand> { it.timestamp }.thenBy { it.id })
-        var heroStack = startingStack * detailedStackMultiplier
+        var heroStack = sortedHands[0].players.let { it.sumOf(Player::stack) / it.size }
+            .also { startingStack = it / detailedStackMultiplier }
+
         if(!sortedHands[0].players.all { it.stack == heroStack }) {
             logger.warn { "spin $id invalid : first hand is missing (uneven stacks)" }
             valid = false

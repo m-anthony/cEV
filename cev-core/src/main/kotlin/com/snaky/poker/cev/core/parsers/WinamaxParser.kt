@@ -21,8 +21,9 @@ class WinamaxParser : AbstractRoomParser() {
     override val getAllPayoutScheme = WinamaxPayouts.ALL
 
     override fun validateHeader(header: String, fileName: String): Boolean {
-        return !fileName.contains("_play_")
-                && fileName.endsWith(".txt")
+        return !fileName.contains("_play_", ignoreCase = true)
+                && !fileName.contains("Freeroll", ignoreCase = true)
+                && fileName.endsWith(".txt", ignoreCase = true)
                 && fileName.contains("Expresso", ignoreCase = true)
                 && (header.startsWith("Winamax Poker - Tournament \"Expresso")
                 || header.startsWith("Winamax Poker - Tournament summary : Expresso"))
@@ -148,7 +149,6 @@ class WinamaxParser : AbstractRoomParser() {
                     val net = first.substringAfter("buyIn: ").substringBefore('€').toDouble()
                     val rake = first.substringAfter("+ ").substringBefore('€').toDouble()
                     buyInCents = (100 * (net + rake)).roundToInt()
-                    startingStack = if(line.contains("nitro", ignoreCase = true)) 300 else 500
                 }
 
                 val handId = first.substringAfter('#').substringBefore(' ')
