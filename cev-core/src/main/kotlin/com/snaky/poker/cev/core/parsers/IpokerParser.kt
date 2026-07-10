@@ -17,7 +17,12 @@ class IpokerParser : AbstractRoomParser(), IPokerXmlListener {
     private var prizePoolCents = 0
     private var heroName: String = ""
     private var validTournament = false
-    private val timeFormatters = listOf(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"), DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"))
+    //TODO: have a setting in user config to remember the last good pattern as it can be ambiguous
+    private val timeFormatters = listOf(
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+        DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"),
+        DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")
+    )
     private var lastTimeFormatter: DateTimeFormatter = timeFormatters.first()
     private var validHand = true
 
