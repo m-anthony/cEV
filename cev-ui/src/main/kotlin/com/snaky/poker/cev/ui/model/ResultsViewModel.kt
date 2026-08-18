@@ -125,8 +125,8 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
         varianceJob?.cancel()
         varianceResults.clear()
 
-        class StatAccumulator(var totalCEV: Double = 0.0, var count: Int = 0){
-            fun toPlayerStat() = PlayerStat(totalCEV / count, count)
+        class StatAccumulator(var totalCEV: Double = 0.0, var count: Int = 0, var buyIn: Int = 0){
+            fun toPlayerStat() = PlayerStat(totalCEV / count, buyIn)
         }
 
         //group by profile and precompute cEV
@@ -136,6 +136,7 @@ class ResultsViewModel(private val api: PokerCalculatorAPI) {
                 acc.apply {
                     totalCEV += spin.cev
                     count++
+                    buyIn += spin.boostMultiplier
                 }
             }
         )
@@ -184,10 +185,10 @@ private fun createStatsObject(label: String, spins: List<Spin>, showCev: Boolean
 
     for (spin in spins) {
         val bi = spin.buyInCents
-        totalBuyInCents += bi
+        totalBuyInCents += bi * spin.boostMultiplier
         prizePoolCents = spin.multiplier.let { if (it == 0) null else prizePoolCents?.plus(it * bi) }
         if (spin.winCents > 0) itmCount++
-        netGainCents += spin.winCents - bi
+        netGainCents += spin.winCents - bi * spin.boostMultiplier
         ev += spin.cev
         sqrEv += spin.cev * spin.cev
         spin.hands.forEach { positionalEv[it.position.ordinal] += it.cev }

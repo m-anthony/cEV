@@ -101,7 +101,7 @@ private data class Stats(
             Hand.Position.entries.forEach { positionalCev[it] = 0.0 }
 
             for (spin in spins) {
-                winCents += spin.winCents - spin.buyInCents
+                winCents += spin.winCents - spin.buyInCents * spin.boostMultiplier
                 if (spin.winCents > 0) itm++
                 buyInCents += spin.buyInCents
                 prizePoolCents += spin.buyInCents * spin.multiplier

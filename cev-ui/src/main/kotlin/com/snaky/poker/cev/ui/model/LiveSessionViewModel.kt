@@ -173,7 +173,7 @@ class LiveSessionViewModel {
         val spinsByLabel = allSpins.groupBy { "${formatBuyIn(it.buyInCents)} ${formatStartingStack(it.startingStack)}" }.toSortedMap()
         val rows = spinsByLabel.mapValues { (label, spins) ->
             val totalWon = spins.sumOf { it.winCents}
-            val totalBuyIn = spins.first().buyInCents * spins.size
+            val totalBuyIn = spins.sumOf { it.buyInCents * it.boostMultiplier}
             val netWon = totalWon - totalBuyIn
             SessionRowUiState(
                 label = label,
@@ -186,7 +186,7 @@ class LiveSessionViewModel {
         }
 
         val totalWon = allSpins.sumOf { it.winCents }
-        val totalBuyIn = allSpins.sumOf { it.buyInCents }
+        val totalBuyIn = allSpins.sumOf { it.buyInCents * it.boostMultiplier}
         val netWon = totalWon - totalBuyIn
         val totalCev = allSpins.groupBy{ it.startingStack }
             .mapValues { (_, spins) -> spins.sumOf { it.cev } }

@@ -11,6 +11,7 @@ class Spin(
     var startingStack = 500
     var buyInCents = 0
     var multiplier = 0
+    var boostMultiplier = 1
     var winCents = 0
     private var _hands: MutableCollection<Hand> = ObjectHashSet()
     val hands: Collection<Hand> get() = _hands
@@ -100,6 +101,7 @@ class Spin(
         lightSpin.buyInCents = buyInCents
         lightSpin.multiplier = multiplier
         lightSpin.winCents = winCents
+        lightSpin.boostMultiplier = boostMultiplier
         if(this::profile.isInitialized) lightSpin.profile = profile
         lightSpin._hands = hands.mapTo(ArrayList(hands.size)) { it.toLightModel(lightSpin) }
 

@@ -14,7 +14,6 @@ class UnibetParser : AbstractRoomParser() {
 
     private var state = ParserState.INIT
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss yyyy/MM/dd")
-    private var validSpinHistory = false
     override val room: Room = Room.UNIBET
     override val getAllPayoutScheme = UnibetPayouts.ALL
     override val payoutProvider: (Spin) -> PayoutScheme = UnibetPayouts
@@ -36,7 +35,9 @@ class UnibetParser : AbstractRoomParser() {
         return if(fileName.contains("Spin")) {
             header.startsWith("Unibet Hand #")
         } else {
-            header.contains("=== HAND HISTORIES ===") || header.contains("=== TOURNAMENT SUMMARIES ===")
+            header.contains("=== HAND HISTORIES ===")
+                    || header.contains("=== TOURNAMENT SUMMARIES ===")
+                    ||(header.startsWith("Unibet Tournament #") && header.contains("3 players"))
         }
     }
 
@@ -112,16 +113,16 @@ class UnibetParser : AbstractRoomParser() {
 
     private fun parseTournamentSummaryLine(l: String) {
         if(l.startsWith("Unibet Tournament")) {
-            validSpinHistory = false
             val spinId = l.substringAfter('#').substringBefore(',')
-            spins[spinId]?.let {
-                validSpinHistory = true
-                spin = it
-            }
-        } else if(validSpinHistory) when {
-            l.startsWith("Buy-In") -> spin.buyInCents = parseBuyInCents(l)
+            registerSpin(spinId)
+        } else when {
             l.contains("Prize Pool") -> spin.multiplier =
                 (l.substringAfter('€').toFloat() * 100 / spin.buyInCents).toInt()
+            l.startsWith("Buy-In") -> {
+                //support for boosted games : count number of  '+'
+                spin.boostMultiplier = (1 + l.count { it == '+' }) / 2
+                spin.buyInCents = parseBuyInCents(l) //will sum first BI + last rake => a single BI
+            }
         }
     }
 
@@ -130,6 +131,10 @@ class UnibetParser : AbstractRoomParser() {
         INIT {
             override fun parseLine(l: String, parser: UnibetParser) = when {
                 l.contains("Hand #") -> parser.initHand(l)
+                l.startsWith("Unibet Tournament #") -> {
+                    parser.parseTournamentSummaryLine(l)
+                    TOURNAMENT_SUMMARIES
+                }
                 l.contains("=== TOURNAMENT SUMMARIES ===") -> TOURNAMENT_SUMMARIES
                 else -> INIT
             }
