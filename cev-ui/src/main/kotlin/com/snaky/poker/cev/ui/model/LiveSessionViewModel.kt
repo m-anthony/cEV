@@ -21,6 +21,7 @@ import java.nio.file.Path
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 data class LiveSessionUiState(
     val liveWidgetConfig: LiveWidgetConfig? = null,
@@ -131,7 +132,7 @@ class LiveSessionViewModel {
                         pauseSession(lastActivity)
                     }
                 }
-                delay(1000)
+                delay(1000.milliseconds)
             }
         }
     }

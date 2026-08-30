@@ -29,7 +29,7 @@ class Spin(
         private set
 
     override fun equals(other: Any?): Boolean {
-        if (this == other) return true
+        if (this === other) return true
         if (other !is Spin) return false
         return id == other.id && room == other.room
     }
