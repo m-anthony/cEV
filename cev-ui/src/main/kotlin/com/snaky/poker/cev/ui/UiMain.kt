@@ -10,6 +10,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.snaky.poker.cev.core.FileCrawler.processFileOrDirectory
 import com.snaky.poker.cev.core.parsers.MetaParser
+import com.snaky.poker.cev.ui.config.ConfigurationManager
 import com.snaky.poker.cev.ui.config.PathManager
 import com.snaky.poker.cev.ui.model.*
 import com.snaky.poker.cev.ui.theme.DefaultTheme
@@ -206,6 +207,17 @@ private fun invokeExternalTool(fqcn: String, toolArgs: Array<String>) {
         val mainMethod = clazz.getMethod("main", Array<String>::class.java)
 
         System.err.println("[DEBUG] Methode trouvee. Args: ${toolArgs.size}")
+
+        //expands --sources => --sources=p1,p2,p3
+        val sourcesIndex = toolArgs.indexOf("--sources")
+        if(sourcesIndex != -1){
+            val sources = ConfigurationManager.configuration.sources
+                .filter { it.isActive }
+                .map { it.path }
+                .reduce { p1, p2 -> "$p1,$p2" }
+            System.err.println("[DEBUG] --sources expended to --sources=${sources}")
+            toolArgs[sourcesIndex] ="--sources=${sources}"
+        }
 
         // Cast explicite vers Array<Any?> pour satisfaire la signature
         // invoke(Object obj, Object... args) de Java
