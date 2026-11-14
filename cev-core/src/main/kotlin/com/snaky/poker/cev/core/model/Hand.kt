@@ -120,5 +120,6 @@ data class Action(
     val player: Player,
     val type: ActionType,
     val allIn: Boolean = false,
-    val amount: Int = 0
+    val amount: Int = 0,
+    val timeStamp: Long = Long.MIN_VALUE,
 )

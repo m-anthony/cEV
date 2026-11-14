@@ -5,14 +5,17 @@ import com.snaky.poker.cev.core.model.*
 import com.snaky.poker.cev.core.model.Hand.Position
 import java.io.BufferedReader
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.days
 
 class BetclicParser : AbstractRoomParser() {
 
     private var state = ParserState.INIT
     private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private val shortTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
     override val room: Room = Room.BETCLIC
     override val payoutProvider: (Spin) -> PayoutScheme = BetclicPayouts
     override val getAllPayoutScheme: List<PayoutScheme> = BetclicPayouts.ALL
@@ -60,6 +63,7 @@ class BetclicParser : AbstractRoomParser() {
     }
 
     private fun parseAction(l: String) {
+        val actionTimeStamp = parseActionTime(l.substringBefore(" -"))
         val name = l.substringAfter("- ").substringBefore(':')
         val allIn = l.endsWith(" and is all-in")
         val actionString = l.substringAfter(": ").substringBefore(" and is all-in")
@@ -80,8 +84,15 @@ class BetclicParser : AbstractRoomParser() {
             type = ActionType.Check
         } // else disconnect/reconnect -> ignore
         if (type != null) {
-            registerAction(Action(hand.findPlayer(name), type, allIn, amount))
+            registerAction(Action(hand.findPlayer(name), type, allIn, amount, actionTimeStamp))
         }
+    }
+
+
+    private fun parseActionTime(timeStr: String): Long {
+        val actionSeconds = LocalTime.parse(timeStr, shortTimeFormatter).toSecondOfDay()
+        val actionTime = hand.timestamp - (hand.timestamp % SECONDS_OF_DAY) + actionSeconds
+        return if(actionTime >= hand.timestamp) actionTime else actionTime + SECONDS_OF_DAY
     }
 
     private fun bettingRoundFinished(l: String) {
@@ -97,7 +108,7 @@ class BetclicParser : AbstractRoomParser() {
     private fun playerFinished(l: String) {
         val player = l.substringBefore(" finished ")
         val wins = l.substringAfter(" wins ", "").substringBefore(" EUR")
-        if (!wins.isEmpty()) hand.playerFinished(player, (wins.toDouble() * 100).toInt())
+        if (wins.isNotEmpty()) hand.playerFinished(player, (wins.toDouble() * 100).toInt())
     }
 
 
@@ -202,6 +213,8 @@ class BetclicParser : AbstractRoomParser() {
     }
 
 }
+
+private val SECONDS_OF_DAY = 1.days.inWholeSeconds
 
 private object BetclicPayouts: (Spin) -> PayoutScheme{
 

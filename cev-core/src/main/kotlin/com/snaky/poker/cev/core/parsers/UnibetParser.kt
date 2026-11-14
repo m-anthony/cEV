@@ -289,6 +289,21 @@ private object UnibetPayouts : (Spin) -> PayoutScheme {
         )
     )
 
+    val STANDARD_NEW = PayoutScheme(
+        name = "NEW",
+        room = Room.UNIBET,
+        availableBuyInCents = listOf(20_00),
+        tiers = listOf(
+            MultiplierTier(2, 482_874),
+            MultiplierTier(3, 345_084),
+            MultiplierTier(4, 130_000),
+            MultiplierTier(5, 32_000),
+            MultiplierTier(listOf(8, 1, 1), 10_000),
+            MultiplierTier(listOf(80, 12, 8), 40), //100
+            MultiplierTier(listOf(2000, 300, 200), 2), //2500
+        )
+    )
+
     val SPIN_250 = PayoutScheme(
         name = "250 EUR",
         room = Room.UNIBET,
@@ -304,7 +319,7 @@ private object UnibetPayouts : (Spin) -> PayoutScheme {
         )
     )
 
-    val ALL = listOf(STANDARD, SPIN_250)
+    val ALL = listOf(STANDARD, SPIN_250, STANDARD_NEW)
 }
 
 private fun String.toStack() = (toFloat() * 100).toInt()
