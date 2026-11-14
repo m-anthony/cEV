@@ -4,6 +4,7 @@ import com.snaky.poker.cev.core.BetTracker
 import com.snaky.poker.cev.core.model.*
 import com.snaky.poker.cev.core.model.Hand.Position.*
 import java.io.BufferedReader
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -270,11 +271,32 @@ private fun parseBuyInCents(buyIn: String) : Int {
 
 private object UnibetPayouts : (Spin) -> PayoutScheme {
 
+    private val repartitionChangeTimestamp = LocalDate.of(2026, 8, 31).atStartOfDay().toEpochSecond(ZoneOffset.UTC)
+
     override fun invoke(spin: Spin): PayoutScheme {
-        return if(spin.buyInCents == 250_00) SPIN_250 else STANDARD
+        val repart2026 = spin.startTimestamp < repartitionChangeTimestamp
+        return when(spin.buyInCents) {
+            250 -> if(repart2026) SPIN_250_2026 else SPIN_250
+            else -> if(repart2026) STANDARD_2026 else STANDARD
+        }
     }
 
     val STANDARD = PayoutScheme(
+        name = "1 - 100 EUR",
+        room = Room.UNIBET,
+        availableBuyInCents = listOf(1_00, 2_00, 5_00, 10_00, 25_00, 50_00, 100_00),
+        tiers = listOf(
+            MultiplierTier(2, 482_874),
+            MultiplierTier(3, 345_084),
+            MultiplierTier(4, 130_000),
+            MultiplierTier(5, 32_000),
+            MultiplierTier(listOf(8, 1, 1), 10_000),
+            MultiplierTier(listOf(80, 12, 8), 40), //100
+            MultiplierTier(listOf(2000, 300, 200), 2), //2500
+        )
+    )
+
+    val STANDARD_2026 = PayoutScheme(
         name = "1 - 100 EUR",
         room = Room.UNIBET,
         availableBuyInCents = listOf(1_00, 2_00, 5_00, 10_00, 25_00, 50_00, 100_00),
@@ -294,6 +316,21 @@ private object UnibetPayouts : (Spin) -> PayoutScheme {
         room = Room.UNIBET,
         availableBuyInCents = listOf(250_00),
         tiers = listOf(
+            MultiplierTier(2, 48_2874),
+            MultiplierTier(3, 34_5084),
+            MultiplierTier(4, 13_0000),
+            MultiplierTier(5, 3_2000),
+            MultiplierTier(listOf(8, 1, 1), 1_0000),
+            MultiplierTier(listOf(80, 12, 8), 40), //100
+            MultiplierTier(listOf(3200, 480, 320), 2), //4000
+        )
+    )
+
+    val SPIN_250_2026 = PayoutScheme(
+        name = "250 EUR",
+        room = Room.UNIBET,
+        availableBuyInCents = listOf(250_00),
+        tiers = listOf(
             MultiplierTier(2, 50_503),
             MultiplierTier(3, 33_470),
             MultiplierTier(4, 12_021),
@@ -303,6 +340,9 @@ private object UnibetPayouts : (Spin) -> PayoutScheme {
             MultiplierTier(listOf(3200, 480, 320), 1), //4000
         )
     )
+
+
+
 
     val ALL = listOf(STANDARD, SPIN_250)
 }
